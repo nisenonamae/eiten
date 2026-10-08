@@ -97,10 +97,10 @@ textarea{min-height:70px;resize:vertical}
 .slot .nm{font-weight:600;line-height:1.35;margin-top:2px}
 .slot .sm{color:var(--sub);font-size:12px;line-height:1.4}
 .slot.off .nm{color:var(--sub);font-weight:400}
-.medal{display:block;margin:0 auto}
+.medal{display:block;margin:0 auto;overflow:hidden}
 .m-near{filter:saturate(.35) brightness(.92);opacity:.8}
 .m-expired{filter:grayscale(1);opacity:.55}
-.m-shadow path,.m-shadow circle{fill:none!important;stroke:#a9aebb;stroke-width:1.6;stroke-dasharray:4 3}
+.m-shadow :is(path,circle,rect,ellipse,polygon){fill:none!important;stroke:#a9aebb!important;stroke-width:1.6;stroke-dasharray:4 3;opacity:1!important}
 .m-shadow text{display:none}
 .rights .card{display:flex;gap:12px;align-items:center}
 .door{flex:none;width:34px;height:44px;border:2px solid var(--lapis);border-radius:16px 16px 2px 2px;background:#dfe6f3}
@@ -110,6 +110,77 @@ textarea{min-height:70px;resize:vertical}
 #toast.err{background:var(--ribbon)}
 #toast.show{display:block}
 
+
+/* 樹形図 */
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--sub);margin:4px 0 8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid;vertical-align:-1px;margin-right:4px}
+.tree-wrap{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:6px;-webkit-overflow-scrolling:touch}
+.tree{display:block;margin:0 auto}
+.edge{fill:none;stroke:#c9ccd5;stroke-width:2}
+.edge.on{stroke:var(--gilt);stroke-width:2.5}
+.tn{cursor:pointer}
+.tn:focus{outline:none}
+.tn:focus-visible .ring,.tn:focus-visible .door-n{stroke:var(--ink)}
+.tn .ring{fill:var(--card);stroke-width:3}
+.tn-got .ring{stroke:var(--gilt);fill:#fffaf0}
+.tn-open .ring{stroke:var(--lapis)}
+.tn-locked .ring{stroke:#a9aebb;stroke-dasharray:4 3}
+.tn .door-n{stroke-width:3}
+.tn-got .door-n{fill:#dfe6f3;stroke:var(--lapis)}
+.tn-open .door-n{fill:var(--card);stroke:var(--lapis)}
+.tn-locked .door-n{fill:var(--card);stroke:#a9aebb;stroke-dasharray:4 3}
+.tn-out{opacity:.5}
+.tn-sel .ring,.tn-sel .door-n{stroke-width:5}
+.tn text{font-size:12px;fill:var(--ink);text-anchor:middle}
+.tn-locked text{fill:var(--sub)}
+.detail dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0;font-size:14px}
+.detail dt{color:var(--sub)}
+.detail dd{margin:0}
+.reqs{margin:0;padding:0;list-style:none}
+
+/* 工房 */
+.studio{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:18px;align-items:start}
+.stage{position:sticky;top:52px;z-index:3;background:var(--paper)}
+#st-canvas{width:100%;max-width:540px;aspect-ratio:1/1;display:block;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;touch-action:none;overflow:hidden}
+.selmark{fill:none;stroke:var(--lapis);stroke-width:.5;stroke-dasharray:1.5 1;pointer-events:none}
+.handle{fill:#fff;stroke:var(--lapis);stroke-width:.6;cursor:grab}
+.panel section{margin-bottom:16px}
+.panel h3{font-size:14px;margin:0 0 6px}
+.shelfbox summary{cursor:pointer;margin-bottom:4px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.thumb{border:1px solid var(--line);background:#fff;border-radius:4px;padding:3px;cursor:pointer;font-size:10px;line-height:1.25;color:var(--sub);overflow:hidden}
+.thumb svg{display:block;width:100%;height:auto;margin-bottom:1px}
+.thumb[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.items{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.items li{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--line);padding:3px 0;font-size:13px}
+.items li.sel{background:var(--gilt-pale)}
+.items .nm{flex:1;cursor:pointer;padding:2px 4px}
+.ib{border:1px solid var(--line);background:#fff;border-radius:3px;padding:1px 7px;cursor:pointer;font-size:12px}
+.ib:disabled{opacity:.4;cursor:default}
+.sl{display:grid;grid-template-columns:5.5em 1fr 3em;align-items:center;gap:6px;font-size:13px;margin:2px 0}
+.sl output{text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+.swatches{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px}
+.sw{width:28px;height:28px;border-radius:4px;border:1px solid var(--line);cursor:pointer;font-size:10px;padding:0}
+.sw[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+
+/* 認定の演出 */
+#fanfare{position:fixed;inset:0;z-index:30;background:rgba(18,20,30,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;overflow:hidden;cursor:pointer;text-align:center;padding:20px}
+#fanfare .rays{position:absolute;left:50%;top:50%;width:140vmax;height:140vmax;margin:-70vmax 0 0 -70vmax;opacity:.32;animation:rays 14s linear infinite,raysin 1.1s ease-out both}
+#fanfare .big{position:relative;animation:rise 1s cubic-bezier(.2,1.5,.4,1) both;filter:drop-shadow(0 6px 24px rgba(0,0,0,.5))}
+#fanfare h2{position:relative;font-family:var(--mincho);font-size:30px;letter-spacing:.08em;margin:16px 0 4px;animation:fade .6s .5s both}
+#fanfare p{position:relative;margin:0;animation:fade .6s .7s both}
+#fanfare .close{font-size:12px;opacity:.6;margin-top:22px}
+#fanfare .cf{position:absolute;top:-5vh;width:7px;height:13px;border-radius:1px;animation-name:fall;animation-timing-function:linear;animation-fill-mode:forwards}
+@keyframes rays{to{transform:rotate(360deg)}}
+@keyframes raysin{from{opacity:0;scale:.15}}
+@keyframes rise{from{transform:scale(.15);opacity:0}}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}}
+@keyframes fall{to{transform:translateY(112vh) rotate(800deg)}}
+@media (max-width:760px){
+  .studio{grid-template-columns:1fr}
+  .stage{top:44px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  #st-canvas{max-height:40vh;width:auto;max-width:100%}
+}
 @media (max-width:600px){
   h1{font-size:32px}
   .def{grid-template-columns:1fr}
@@ -148,7 +219,7 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r1';
+const VERSION = '2026-10-09 r2';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
@@ -272,6 +343,7 @@ const E = (() => {
     def.requires.forEach(r => { if(!findAch(d, r)) errs.push('必要実績に、ない実績が入っています'); });
     if(type === 'challenge' && def.requires.length === 0) errs.push('挑戦権には必要実績が1つ以上いります');
     if(type === 'achievement' && id && def.requires.includes(id)) errs.push('自分自身を必要実績にはできません');
+    if(type === 'achievement' && def.art && !d.arts.some(a => a.id === def.art)) errs.push('勲章が見つかりません');
     if(def.period && def.period.from && def.period.to && def.period.from > def.period.to) errs.push('期間の始まりが終わりより後です');
     ['renewDays','uses','cooldownDays','validDays'].forEach(k => { if(Number.isNaN(def[k])) errs.push('日数・回数は1以上の数で書いてください'); });
     if(type === 'achievement'){
@@ -358,9 +430,145 @@ const E = (() => {
     return out;
   }
 
-  return { VERSION_DATA: 1, NEAR_DAYS, taskDay, addDays, diffDays, emptyData, normalize, clone,
+  return { VERSION_DATA: 1, NEAR_DAYS, newId, taskDay, addDays, diffDays, emptyData, normalize, clone,
     findAch, findCh, grantFor, rightFor, held, inPeriod, missing, achStatus, challengeStatus,
     canApply, submitApplication, cleanDef, validateDef, hasCycle, proposeRule, checkRights, decide };
+})();
+
+/* ===================== 絵(部品と勲章) ===================== */
+const A = (() => {
+  const METALS = { gold: ['#f4dc8f','#c9a24a','#7f601d'], silver: ['#f4f6f9','#b8bec9','#6f7682'], bronze: ['#efbb91','#b0703f','#683f1f'] };
+  const METAL_NAMES = { gold: '金', silver: '銀', bronze: '銅' };
+  const PALETTE = ['#7d1f2c','#5c1520','#2b4a86','#2f6b47','#1f2433','#ffffff','#5e2a7e','#c2552d'];
+  const SHAPE_NAMES = { circle: '円', ellipse: '楕円', rect: '四角', poly: '多角形', star: '星', line: '線', path: '曲線' };
+  const KINDS = ['形','紋','飾り'];
+  let seq = 0;
+  const f2 = n => +(+n).toFixed(2);
+
+  function hexToHsl(hex){
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if(!m) return [40, 50, 50];
+    const n = parseInt(m[1], 16), r = (n >> 16 & 255)/255, g = (n >> 8 & 255)/255, b = (n & 255)/255;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b), l = (mx+mn)/2; let hh = 0, s = 0;
+    if(mx !== mn){ const dd = mx-mn; s = l > .5 ? dd/(2-mx-mn) : dd/(mx+mn);
+      hh = mx === r ? (g-b)/dd + (g < b ? 6 : 0) : mx === g ? (b-r)/dd + 2 : (r-g)/dd + 4; hh *= 60; }
+    return [hh, s*100, l*100];
+  }
+  // 地金の色1・2・3(明るい・ふつう・暗い)
+  function metal(m){
+    if(METALS[m]) return METALS[m];
+    if(/^#[0-9a-f]{6}$/i.test(m || '')){ const [hh, s, l] = hexToHsl(m);
+      return [`hsl(${f2(hh)} ${f2(s)}% ${f2(Math.min(92, l+28))}%)`, m, `hsl(${f2(hh)} ${f2(s)}% ${f2(Math.max(10, l-30))}%)`]; }
+    return METALS.gold;
+  }
+  function col(v, pal){ if(!v || v === 'none') return 'none'; if(v === 'm1') return pal[0]; if(v === 'm2') return pal[1]; if(v === 'm3') return pal[2]; return v; }
+
+  function pathD(pts, closed, smooth){
+    if(!pts || pts.length < 2) return 'M0 0';
+    if(!smooth) return 'M' + pts.map(p => f2(p[0]) + ' ' + f2(p[1])).join('L') + (closed ? 'Z' : '');
+    const n = pts.length, P = i => closed ? pts[(i % n + n) % n] : pts[Math.max(0, Math.min(n-1, i))];
+    let d = `M${f2(pts[0][0])} ${f2(pts[0][1])}`;
+    for(let i = 0; i < (closed ? n : n-1); i++){
+      const p0 = P(i-1), p1 = P(i), p2 = P(i+1), p3 = P(i+2);
+      d += `C${f2(p1[0]+(p2[0]-p0[0])/6)} ${f2(p1[1]+(p2[1]-p0[1])/6)} ${f2(p2[0]-(p3[0]-p1[0])/6)} ${f2(p2[1]-(p3[1]-p1[1])/6)} ${f2(p2[0])} ${f2(p2[1])}`;
+    }
+    return d + (closed ? 'Z' : '');
+  }
+  function ring(n, r, r2){
+    const pts = [], k = r2 ? 2*n : n;
+    for(let i = 0; i < k; i++){ const a = -Math.PI/2 + i*2*Math.PI/k, rr = (r2 && i % 2) ? r2 : r; pts.push(f2(rr*Math.cos(a)) + ',' + f2(rr*Math.sin(a))); }
+    return pts.join(' ');
+  }
+  function geom(s){
+    switch(s.t){
+      case 'circle': return `<circle r="${f2(s.r)}"`;
+      case 'ellipse': return `<ellipse rx="${f2(s.rx)}" ry="${f2(s.ry)}"`;
+      case 'rect': return `<rect x="${f2(-s.w/2)}" y="${f2(-s.h/2)}" width="${f2(s.w)}" height="${f2(s.h)}" rx="${f2(s.rx || 0)}"`;
+      case 'poly': return `<polygon points="${ring(Math.max(3, s.n|0), s.r)}"`;
+      case 'star': return `<polygon points="${ring(Math.max(3, s.n|0), s.r, s.r2)}"`;
+      case 'line': return `<path d="${pathD(s.pts, false, s.smooth)}"`;
+      case 'path': return `<path d="${pathD(s.pts, s.closed !== false, s.smooth)}"`;
+    }
+    return '<g';
+  }
+  // mode: undefined=ふつう / 'mask'=くり抜き用に黒 / 'hit'=つまむための見えない形
+  function shapeSvg(s, pal, mode){
+    let fill = s.t === 'line' ? 'none' : col(s.fill, pal), stroke = (s.sw > 0) ? col(s.stroke, pal) : 'none';
+    if(mode === 'mask'){ fill = fill === 'none' ? 'none' : '#000'; stroke = stroke === 'none' ? 'none' : '#000'; }
+    if(mode === 'hit'){ fill = 'none'; stroke = 'none'; }
+    const sw = mode === 'hit' ? Math.max(4, s.sw || 0) : (s.sw || 0);
+    const a = ` fill="${fill}" stroke="${stroke}" stroke-width="${f2(sw)}" stroke-linejoin="round" stroke-linecap="round"` +
+      (s.dash && !mode ? ` stroke-dasharray="${s.dash}"` : '') + (!mode && s.alpha != null && s.alpha < 1 ? ` opacity="${s.alpha}"` : '');
+    return `<g transform="translate(${f2(s.x || 0)} ${f2(s.y || 0)}) rotate(${f2(s.rot || 0)}) scale(${f2(s.s ?? 1)})">${geom(s)}${a}/></g>`;
+  }
+  function partInner(part, pal, opts){
+    opts = opts || {};
+    const shapes = (part && part.shapes) || [];
+    const adds = shapes.filter(s => !s.cut).map(s => shapeSvg(s, pal)).join('');
+    const cuts = shapes.filter(s => s.cut);
+    if(!cuts.length || opts.noCut) return adds;
+    const id = 'mk' + (++seq) + Math.random().toString(36).slice(2,5);
+    return `<mask id="${id}" maskUnits="userSpaceOnUse" x="-300" y="-300" width="700" height="700"><rect x="-300" y="-300" width="700" height="700" fill="#fff"/>${cuts.map(s => shapeSvg(s, pal, 'mask')).join('')}</mask><g mask="url(#${id})">${adds}</g>`;
+  }
+  function partSvg(part, m){ return `<svg viewBox="0 0 100 100" aria-hidden="true">${partInner(part, metal(m || 'gold'))}</svg>`; }
+
+  function artInner(art, getPart, opts){
+    opts = opts || {};
+    const layers = (art.layers || []).map((L, i) => {
+      const p = getPart(L.part); if(!p) return '';
+      return `<g${opts.hit ? ` data-i="${i}" style="cursor:move"` : ''} transform="translate(${f2(L.x ?? 50)} ${f2(L.y ?? 50)}) rotate(${f2(L.rot || 0)}) scale(${f2(L.s ?? 1)}) translate(-50 -50)">${partInner(p, metal(L.metal || 'gold'), { noCut: opts.noCut })}</g>`;
+    }).join('');
+    const t = art.text || {};
+    const text = t.str ? `<text x="50" y="${f2(t.y ?? 58)}" text-anchor="middle" font-size="${f2(t.size || 14)}" font-family="Shippori Mincho,serif" font-weight="700" fill="${t.fill || '#3a2a0c'}">${String(t.str).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</text>` : '';
+    return layers + text;
+  }
+  function artSvg(art, getPart, opts){
+    opts = opts || {}; const size = opts.size || 84, mode = opts.mode || 'got';
+    return `<svg class="medal m-${mode}" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">${artInner(art, getPart, { noCut: mode === 'shadow' })}</svg>`;
+  }
+
+  /* --- 最初から用意する部品 --- */
+  const rel = pts => pts.map(([x, y]) => [x-50, y-50]);
+  const C = (r, fill, o) => Object.assign({ t:'circle', x:50, y:50, r, fill }, o);
+  const El = (x, y, rx, ry, fill, o) => Object.assign({ t:'ellipse', x, y, rx, ry, fill }, o);
+  const R = (x, y, w, h, fill, o) => Object.assign({ t:'rect', x, y, w, h, fill }, o);
+  const Pg = (n, r, fill, o) => Object.assign({ t:'poly', x:50, y:50, n, r, fill }, o);
+  const St = (n, r, r2, fill, o) => Object.assign({ t:'star', x:50, y:50, n, r, r2, fill }, o);
+  const Pa = (pts, fill, o) => Object.assign({ t:'path', x:50, y:50, pts: rel(pts), closed: true, fill }, o);
+  const Ln = (pts, stroke, sw, o) => Object.assign({ t:'line', x:50, y:50, pts: rel(pts), fill:'none', stroke, sw }, o);
+  const around = (n, r, a0, a1) => Array.from({ length: n }, (_, i) => { const a = (a0 + (a1-a0)*(n === 1 ? 0 : i/(n-1))) * Math.PI/180; return [50 + r*Math.cos(a), 50 + r*Math.sin(a), a*180/Math.PI]; });
+  const gear = (teeth, ro, ri) => { const pts = []; for(let i = 0; i < teeth*4; i++){ const a = (i/(teeth*4))*2*Math.PI - Math.PI/2, r = (i % 4 < 2) ? ro : ri; pts.push([50 + r*Math.cos(a), 50 + r*Math.sin(a)]); } return pts; };
+  const CUT = { cut: true };
+  const B = [
+    ['b-enshou','円章','形',[C(46,'m3'), C(41,'m2'), C(34,'none',{ stroke:'m1', sw:1.5 })]],
+    ['b-tate','盾','形',[Pa([[14,8],[86,8],[86,46],[78,68],[50,94],[22,68],[14,46]],'m3'), Pa([[20,14],[80,14],[80,46],[73,64],[50,86],[27,64],[20,46]],'m2')]],
+    ['b-hoshigata','星','形',[St(5,48,21,'m3'), St(5,42,18,'m2')]],
+    ['b-rokkaku','六角形','形',[Pg(6,47,'m3'), Pg(6,41,'m2')]],
+    ['b-hishi','菱形','形',[Pg(4,48,'m3'), Pg(4,41,'m2')]],
+    ['b-hata','旗','形',[Ln([[18,8],[18,94]],'m3',4), Pa([[20,12],[88,12],[74,36],[88,60],[20,60]],'m2')]],
+    ['b-hon','本','紋',[Pa([[50,36],[24,30],[24,70],[50,76]],'m3'), Pa([[50,36],[76,30],[76,70],[50,76]],'m3'), Ln([[50,37],[50,75]],'m1',1.5)]],
+    ['b-chikyu','地球','紋',[C(26,'m3'), El(50,50,11,26,'none',{ stroke:'#000', sw:2.5, cut:true }), Ln([[24,50],[76,50]],'#000',2.5,CUT), Ln([[28,38],[72,38]],'#000',2,CUT), Ln([[28,62],[72,62]],'#000',2,CUT)]],
+    ['b-pen','ペン','紋',[Pa([[50,18],[63,46],[57,80],[43,80],[37,46]],'m3'), C(4,'#000',{ y:54, cut:true }), Ln([[50,20],[50,50]],'#000',2,CUT)]],
+    ['b-ken','剣','紋',[Pa([[50,12],[55,22],[55,62],[45,62],[45,22]],'m3'), R(50,65,32,5,'m3',{ rx:2 }), R(50,75,5,15,'m3'), C(4.5,'m3',{ y:86 })]],
+    ['b-yama','山','紋',[Pa([[16,74],[40,34],[52,52],[62,40],[84,74]],'m3'), Pa([[40,34],[46,44],[40,42],[34,45]],'m1')]],
+    ['b-honoo','炎','紋',[Pa([[50,16],[62,34],[70,54],[64,72],[50,80],[36,72],[30,56],[38,42],[44,52],[46,34]],'m3',{ smooth:true }), Pa([[50,48],[57,60],[56,72],[50,76],[44,72],[43,62]],'m1',{ smooth:true })]],
+    ['b-nami','波','紋',[0,12,24].map(dy => Ln([[20,38+dy],[30,31+dy],[40,38+dy],[50,31+dy],[60,38+dy],[70,31+dy],[80,38+dy]],'m3',4,{ smooth:true }))],
+    ['b-haguruma','歯車','紋',[Pa(gear(10,30,24),'m3'), C(10,'#000',CUT)]],
+    ['b-ie','家','紋',[Pa([[50,22],[78,46],[71,46],[71,76],[29,76],[29,46],[22,46]],'m3'), R(50,67,10,18,'#000',CUT)]],
+    ['b-hoshimon','星','紋',[St(5,24,10,'m3')]],
+    ['b-oukan','王冠','紋',[Pa([[24,70],[22,36],[37,52],[50,28],[63,52],[78,36],[76,70]],'m3'), R(50,74,52,7,'m3',{ rx:2 }), C(3.5,'m1',{ x:22, y:34 }), C(3.5,'m1',{ x:50, y:26 }), C(3.5,'m1',{ x:78, y:34 })]],
+    ['b-hikari','光の筋','飾り', Array.from({ length: 16 }, (_, i) => { const a = i*Math.PI/8, d = .075; return Pa([[50,50],[50+50*Math.cos(a-d),50+50*Math.sin(a-d)],[50+50*Math.cos(a+d),50+50*Math.sin(a+d)]],'m1',{ alpha:.55 }); })],
+    ['b-gekkeiju','月桂樹','飾り',[...around(7,41,100,220), ...around(7,41,80,-40)].map(([x, y, a]) => El(x, y, 3.6, 8.5, 'm2', { rot: a }))],
+    ['b-ju','綬(リボン)','飾り',[Pa([[26,0],[48,0],[60,44],[38,44]],'#7d1f2c'), Pa([[52,0],[74,0],[62,44],[40,44]],'#5c1520'), Ln([[37,0],[49,44]],'#b08a3e',2), Ln([[63,0],[51,44]],'#b08a3e',2)]],
+    ['b-kohoshi','小さな星','飾り', around(5,43,-150,-30).map(([x, y]) => St(5,5,2.2,'m1',{ x, y }))],
+    ['b-fuchi1','縁取り(一重)','飾り',[C(46,'none',{ stroke:'m1', sw:2.5 })]],
+    ['b-fuchi2','縁取り(二重)','飾り',[C(47,'none',{ stroke:'m1', sw:2 }), C(43,'none',{ stroke:'m1', sw:1.2 })]],
+    ['b-fuchi3','縁取り(刻み)','飾り',[C(45,'none',{ stroke:'m1', sw:4, dash:'2 2.7' })]],
+    ['b-fuchi4','縁取り(粒)','飾り', around(28,45,0,360-360/28).map(([x, y]) => C(1.8,'m1',{ x, y }))],
+  ];
+  const BUILTIN = B.map(([id, name, kind, shapes]) => ({ id, name, kind, builtin: true, shapes: shapes.map(s => Object.assign({ s: 1, rot: 0, sw: 0, stroke: 'none' }, s)) }));
+  const builtin = id => BUILTIN.find(p => p.id === id);
+
+  return { METALS, METAL_NAMES, PALETTE, SHAPE_NAMES, KINDS, BUILTIN, builtin, metal, col, pathD, shapeSvg, partInner, partSvg, artInner, artSvg };
 })();
 
 /* ===================== GitHub との読み書き ===================== */
@@ -465,15 +673,13 @@ function render(){
     m.innerHTML = `<div class="empty">右上の「接続」から、リポジトリとトークンを入れてください。データは <b>${h(PATHS.data)}</b> に置きます。</div>`;
     return;
   }
-  m.innerHTML = ({ tree: renderLater('樹形図', 3), list: renderList, review: renderReview, settings: renderSettings, studio: renderLater('工房', 4) }[S.tab])();
-}
-function renderLater(name, step){
-  return () => `<h2>${name}</h2><div class="empty">この画面は、作る順番の${step}番目で作ります。今の版では、設定・審査会議・一覧が使えます。</div>`;
+  m.innerHTML = ({ tree: renderTree, list: renderList, review: renderReview, settings: renderSettings, studio: renderStudio }[S.tab])();
+  if(S.tab === 'studio') drawCanvas();
 }
 
-function fieldChips(){
+function fieldChips(allLabel){
   const tags = [...new Set([...S.ministries.map(m => m.tag), ...S.data.achievements.flatMap(a => a.fields), ...S.data.challenges.flatMap(c => c.fields)])];
-  return `<div class="chips"><button class="chip" data-act="field" data-v="all" aria-pressed="${S.field === 'all'}">すべて</button>` +
+  return `<div class="chips"><button class="chip" data-act="field" data-v="all" aria-pressed="${S.field === 'all'}">${allLabel || 'すべて'}</button>` +
     tags.map(t => `<button class="chip" data-act="field" data-v="${h(t)}" aria-pressed="${S.field === t}">${h(fieldName(t))}</button>`).join('') + '</div>';
 }
 const inField = x => S.field === 'all' || (x.fields || []).includes(S.field);
@@ -486,12 +692,12 @@ function renderList(){
   const achs = d.achievements.filter(inField);
   const shelf = achs.length ? achs.map(a => {
     const st = E.achStatus(d, a, t);
-    if(st.state !== 'got') return `<div class="slot off">${medalSvg(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}</div></div>`;
+    if(st.state !== 'got') return `<div class="slot off">${achMedal(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}</div></div>`;
     const mode = st.expired ? 'expired' : st.near ? 'near' : 'got';
     const g = st.grant;
     const sub = [`${fmtDay(g.day)}認定`];
     if(g.expires) sub.push(st.expired ? '期限切れ・更新の申請を' : `更新期限 ${fmtDay(g.expires)}`);
-    return `<div class="slot">${medalSvg(a, mode)}<div class="nm">${h(a.name)}</div><div class="sm">${sub.map(h).join('<br>')}</div></div>`;
+    return `<div class="slot">${achMedal(a, mode)}<div class="nm">${h(a.name)}</div><div class="sm">${sub.map(h).join('<br>')}</div></div>`;
   }).join('') : '';
   const rights = d.rights.filter(r => { const c = E.findCh(d, r.challengeId); return c && inField(c); });
   const rightsHtml = rights.length ? rights.map(r => {
@@ -512,13 +718,14 @@ function renderSettings(){
   const d = S.data, t = today();
   const achs = d.achievements.filter(inField), chs = d.challenges.filter(inField);
   const achHtml = achs.map(a => `<article class="def" id="def-${h(a.id)}">
-    <div class="art">${medalSvg(a, E.achStatus(d, a, t).state === 'got' ? 'got' : 'shadow', 56)}</div>
+    <div class="art">${achMedal(a, E.achStatus(d, a, t).state === 'got' ? 'got' : 'shadow', 56)}</div>
     <div><h3>${h(a.name)}</h3><dl>
       <dt>分野</dt><dd>${tags(a.fields)}</dd>
       <dt>達成条件</dt><dd>${h(a.condition)}</dd>
       <dt>必要実績</dt><dd>${reqList(a.requires, t)}</dd>
       <dt>更新制</dt><dd>${a.renewDays ? `${a.renewDays}日ごとに再審査` : 'なし'}</dd>
       <dt>申請できる期間</dt><dd>${h(fmtPeriod(a.period))}</dd>
+      <dt>勲章</dt><dd>${h(fmtVal('art', a.art))}</dd>
     </dl></div>
     <div class="acts"><button class="btn line small" data-act="propose-edit" data-type="achievement" data-id="${h(a.id)}">変更を申し出る</button></div>
   </article>`).join('');
@@ -545,13 +752,14 @@ function renderSettings(){
 
 /* ---- 審査会議 ---- */
 const DEF_ROWS = {
-  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['renewDays','更新制'],['period','申請できる期間']],
+  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['renewDays','更新制'],['period','申請できる期間'],['art','勲章']],
   challenge: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['uses','回数'],['cooldownDays','再挑戦までの間'],['validDays','有効期限'],['period','得られる期間']],
 };
 function fmtVal(k, v){
   if(k === 'fields') return (v || []).map(fieldName).join('、') || 'なし';
   if(k === 'requires') return (v || []).map(achName).join('、') || 'なし';
   if(k === 'period') return fmtPeriod(v);
+  if(k === 'art'){ const a = findArt(v); return v ? (a ? a.name : '(なくなった勲章)') : '仮の勲章'; }
   if(k === 'renewDays') return v ? `${v}日ごとに再審査` : 'なし';
   if(k === 'uses') return v ? `${v}回まで` : '無制限';
   if(k === 'cooldownDays') return v ? `${v}日` : 'なし';
@@ -571,8 +779,9 @@ function renderReview(){
   const d = S.data, t = today();
   const opts = d.achievements.map(a => {
     const c = E.canApply(d, a.id, t);
-    return `<option value="${h(a.id)}" ${c.ok ? '' : 'disabled'}>${h(a.name)}${c.ok ? (c.renewal ? '(更新)' : '') : '—' + h(c.reason)}</option>`;
+    return `<option value="${h(a.id)}" ${c.ok ? '' : 'disabled'} ${c.ok && S.applyPreset === a.id ? 'selected' : ''}>${h(a.name)}${c.ok ? (c.renewal ? '(更新)' : '') : '—' + h(c.reason)}</option>`;
   }).join('');
+  S.applyPreset = null;
   const pending = d.reviews.filter(r => r.status === 'pending');
   const pendHtml = pending.length ? pending.map(r => {
     const head = r.kind === 'apply'
@@ -620,7 +829,7 @@ function ruleForm(){
     <div class="f note">分野<div class="checks">${fieldsHtml}</div></div>
     <label class="f">達成条件<textarea id="rf-cond">${h(d.condition)}</textarea></label>
     <div class="f note">必要実績${isA ? '' : '(この組み合わせを持つと得られる)'}<div class="checks">${reqHtml}</div></div>
-    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに再審査)', d.renewDays, '空なら更新なし')}<span></span></div>`
+    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに再審査)', d.renewDays, '空なら更新なし')}<label class="f">勲章<select id="rf-art"><option value="">仮の勲章</option>${S.data.arts.map(a => `<option value="${h(a.id)}" ${d.art === a.id ? 'selected' : ''}>${h(a.name)}</option>`).join('')}</select></label></div>`
           : `<div class="two">${num('rf-uses', '回数', d.uses, '空なら無制限')}${num('rf-cool', '再挑戦までの日数', d.cooldownDays, '空ならなし')}</div>
              <div class="two">${num('rf-valid', '有効期限(得てから何日)', d.validDays, '空ならなし')}<span></span></div>`}
     <div class="two"><label class="f">${isA ? '申請できる' : '得られる'}期間の始まり<input type="date" id="rf-from" value="${h(p.from || '')}"></label>
@@ -633,10 +842,410 @@ function readRuleForm(){
   const v = id => ($('#' + id) || {}).value || '';
   const checked = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value);
   const raw = { name: v('rf-name'), fields: checked('rf-field'), condition: v('rf-cond'), requires: checked('rf-req'),
-    period: { from: v('rf-from'), to: v('rf-to') }, art: S.ruleDraft.def.art || null };
+    period: { from: v('rf-from'), to: v('rf-to') }, art: S.ruleDraft.type === 'achievement' ? (v('rf-art') || null) : null };
   if(S.ruleDraft.type === 'achievement') raw.renewDays = v('rf-renew');
   else { raw.uses = v('rf-uses'); raw.cooldownDays = v('rf-cool'); raw.validDays = v('rf-valid'); }
   return { raw, note: v('rf-note') };
+}
+
+/* ===================== 勲章の表示 ===================== */
+const getPart = id => A.builtin(id) || S.data.parts.find(p => p.id === id);
+const findArt = id => id ? S.data.arts.find(a => a.id === id) : null;
+function achMedal(a, mode, size){
+  const art = findArt(a.art);
+  return art ? A.artSvg(art, getPart, { mode, size }) : medalSvg(a, mode, size);
+}
+const medalRatio = a => findArt(a.art) ? 1 : 1.2;
+
+/* ===================== 樹形図 ===================== */
+const TREE = { COL: 104, ROW: 124, PAD: 44 };
+function treeLayout(d, field, t){
+  const inF = x => field === 'all' || (x.fields || []).includes(field);
+  const achs = new Map(d.achievements.map(a => [a.id, a]));
+  const set = new Set(), outside = new Set();
+  d.achievements.filter(inF).forEach(a => set.add(a.id));
+  const chs = d.challenges.filter(inF);
+  const pullIn = id => { const a = achs.get(id); if(!a) return; (a.requires || []).forEach(r => { if(achs.has(r) && !set.has(r)){ set.add(r); outside.add(r); pullIn(r); } }); };
+  [...set].forEach(pullIn);
+  chs.forEach(c => c.requires.forEach(r => { if(achs.has(r) && !set.has(r)){ set.add(r); outside.add(r); pullIn(r); } }));
+  const memo = new Map();
+  const depth = (id, seen = new Set()) => {
+    if(memo.has(id)) return memo.get(id);
+    if(seen.has(id)) return 0; seen.add(id);
+    const reqs = (achs.get(id).requires || []).filter(r => set.has(r));
+    const v = reqs.length ? 1 + Math.max(...reqs.map(r => depth(r, seen))) : 0;
+    memo.set(id, v); return v;
+  };
+  const nodes = [...set].map(id => ({ key: 'a:' + id, type: 'a', id, obj: achs.get(id), depth: depth(id), outside: outside.has(id) }));
+  chs.forEach(c => { const reqs = c.requires.filter(r => set.has(r)); nodes.push({ key: 'c:' + c.id, type: 'c', id: c.id, obj: c, depth: reqs.length ? 1 + Math.max(...reqs.map(r => depth(r))) : 0, outside: false }); });
+  const edges = [];
+  nodes.forEach(n => (n.obj.requires || []).forEach(r => { if(set.has(r)) edges.push({ from: 'a:' + r, to: n.key, on: E.held(d, r, t) }); }));
+  // 段ごとに並べ、親の位置の平均で順番を決める
+  const maxD = nodes.reduce((m, n) => Math.max(m, n.depth), 0);
+  const rows = Array.from({ length: maxD + 1 }, (_, i) => nodes.filter(n => n.depth === i));
+  const pos = new Map();
+  rows.forEach((row, i) => {
+    if(i === 0) row.sort((a, b) => (a.obj.fields[0] || '').localeCompare(b.obj.fields[0] || '') || a.obj.name.localeCompare(b.obj.name));
+    else row.forEach(n => { const ps = (n.obj.requires || []).map(r => pos.get('a:' + r)).filter(v => v !== undefined); n.bary = ps.length ? ps.reduce((s, v) => s + v, 0)/ps.length : 0; }), row.sort((a, b) => a.bary - b.bary || (a.type < b.type ? -1 : 1));
+    row.forEach((n, j) => pos.set(n.key, j - (row.length - 1)/2));
+  });
+  const widest = Math.max(1, ...rows.map(r => r.length));
+  const W = Math.max(320, widest*TREE.COL + TREE.PAD*2), H = TREE.PAD + maxD*TREE.ROW + 74;
+  nodes.forEach(n => { n.x = W/2 + pos.get(n.key)*TREE.COL; n.y = TREE.PAD + n.depth*TREE.ROW; });
+  return { nodes, edges, W, H };
+}
+function nodeState(n, t){
+  return n.type === 'a' ? E.achStatus(S.data, n.obj, t) : E.challengeStatus(S.data, n.obj, t);
+}
+function treeSvg(L, t){
+  const at = new Map(L.nodes.map(n => [n.key, n]));
+  const edges = L.edges.map(e => { const a = at.get(e.from), b = at.get(e.to); const y1 = a.y + 32, y2 = b.y - 34;
+    return `<path class="edge${e.on ? ' on' : ''}" d="M${a.x} ${y1}C${a.x} ${y1 + 40} ${b.x} ${y2 - 40} ${b.x} ${y2}"/>`; }).join('');
+  const nodes = L.nodes.map(n => {
+    const st = nodeState(n, t), name = n.obj.name;
+    const label = h(name.length > 8 ? name.slice(0, 8) + '…' : name);
+    const cls = `tn tn-${st.state}${n.outside ? ' tn-out' : ''}${S.treeSel === n.key ? ' tn-sel' : ''}`;
+    let body;
+    if(n.type === 'a'){
+      const mode = st.state !== 'got' ? 'shadow' : st.expired ? 'expired' : st.near ? 'near' : 'got';
+      const size = 40, hh = size*medalRatio(n.obj);
+      body = `<circle class="ring" r="31"/><g transform="translate(${-size/2} ${-hh/2})">${achMedal(n.obj, mode, size)}</g>`;
+    } else {
+      body = `<path class="door-n" d="M-22 28V-8A22 22 0 0 1 22 -8V28Z"/>` + (st.state === 'got' ? `<circle r="3" cx="12" cy="8" fill="#2b4a86"/>` : `<path d="M-4 6a4 4 0 1 1 8 0l-2 8h-4z" fill="#a9aebb"/>`);
+    }
+    return `<g class="${cls}" data-node="${h(n.key)}" tabindex="0" role="button" aria-label="${h(name)}" transform="translate(${n.x} ${n.y})"><title>${h(name)}</title>${body}<text y="50">${label}</text></g>`;
+  }).join('');
+  return `<svg class="tree" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}">${edges}${nodes}</svg>`;
+}
+function treeDetail(n, t){
+  const st = nodeState(n, t), o = n.obj, isA = n.type === 'a';
+  const label = { got: '手に入れた', open: '今目指せる', locked: '鍵がかかっている' }[st.state];
+  const now = [];
+  if(isA && st.state === 'got'){
+    now.push(`${fmtDay(st.grant.day)}に認定`);
+    if(st.grant.expires) now.push(st.expired ? `更新期限(${fmtDay(st.grant.expires)})を過ぎています。更新の申請を` : `更新期限 ${fmtDay(st.grant.expires)}(あと${st.left}日)`);
+  }
+  if(!isA && st.state === 'got'){
+    const r = st.right;
+    now.push(`${fmtDay(r.day)}に得た`, r.left === null ? '回数は無制限' : `残り${r.left}回`, r.expires ? (st.expired ? '有効期限が切れています' : `有効期限 ${fmtDay(r.expires)}`) : '有効期限なし');
+    if(st.nextDay) now.push(st.waiting ? `${fmtDay(st.nextDay)}から再挑戦できる` : '再挑戦できる');
+  }
+  if(st.state !== 'got' && st.outOfPeriod) now.push('今は申請できる期間の外です');
+  const reqs = (o.requires || []).map(id => `<li>${E.held(S.data, id, t) ? '✓ 持っている' : '・まだ'}:${h(achName(id))}</li>`).join('') || '<li>なし</li>';
+  const canApply = isA && E.canApply(S.data, o.id, t).ok;
+  return `<div class="card detail" id="tree-detail">
+    <h3>${isA ? '実績' : '挑戦権'}:${h(o.name)}</h3>
+    <div>${tags(o.fields)}${n.outside ? '<span class="note">(ほかの分野の実績)</span>' : ''}</div>
+    <dl><dt>達成条件</dt><dd>${h(o.condition)}</dd>
+    <dt>必要実績</dt><dd><ul class="reqs">${reqs}</ul></dd>
+    <dt>現在の状態</dt><dd><b>${label}</b>${now.length ? '<br>' + now.map(h).join('<br>') : ''}</dd></dl>
+    <div class="acts"><button class="btn line small" data-act="goto-def" data-id="${h(o.id)}">設定で見る</button>
+    ${canApply ? `<button class="btn small" data-act="goto-apply" data-id="${h(o.id)}">申請する</button>` : ''}</div></div>`;
+}
+function renderTree(){
+  const t = today(), d = S.data;
+  if(!d.achievements.length && !d.challenges.length) return `<h2>樹形図</h2><div class="empty">まだ実績がありません。審査会議で実績を足すと、ここに図ができます。</div>`;
+  const L = treeLayout(d, S.field, t);
+  const sel = L.nodes.find(n => n.key === S.treeSel);
+  return `<h2>樹形図</h2>${fieldChips('すべてを合わせた図')}
+    <div class="legend"><span><i style="border-color:var(--gilt)"></i>手に入れた</span><span><i style="border-color:var(--lapis)"></i>今目指せる</span><span><i style="border-color:#a9aebb;border-style:dashed"></i>鍵がかかっている</span></div>
+    ${L.nodes.length ? `<div class="tree-wrap">${treeSvg(L, t)}</div>` : '<div class="empty">この分野には、まだ実績も挑戦権もありません。</div>'}
+    ${sel ? treeDetail(sel, t) : '<p class="note">実績や挑戦権を押すと、達成条件・必要実績・今の状態が出ます。</p>'}`;
+}
+
+/* ===================== 工房 ===================== */
+const ST = S.st = { mode: 'part', part: null, sel: -1, preview: 'gold', art: null, lsel: -1, dirty: false };
+const blankPart = () => ({ id: null, name: '', kind: '紋', shapes: [] });
+const blankArt = () => ({ id: null, name: '', layers: [], text: { str: '', y: 58, size: 14, fill: '#3a2a0c' } });
+const NEW_SHAPE = {
+  circle: () => ({ t:'circle', r: 20 }),
+  rect: () => ({ t:'rect', w: 40, h: 28, rx: 0 }),
+  poly: () => ({ t:'poly', n: 6, r: 22 }),
+  star: () => ({ t:'star', n: 5, r: 24, r2: 10 }),
+  line: () => ({ t:'line', pts: [[-22,0],[22,0]], stroke: 'm3', sw: 3, fill: 'none', smooth: false }),
+  path: () => ({ t:'path', pts: [[-20,12],[0,-20],[20,12],[0,4]], closed: true, smooth: true }),
+};
+const fmtN = v => (Math.round(v*100)/100).toString();
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const curShape = () => ST.part && ST.part.shapes[ST.sel];
+const curLayer = () => ST.art && ST.art.layers[ST.lsel];
+function ensureStudio(){ if(!ST.part) ST.part = blankPart(); if(!ST.art) ST.art = blankArt(); }
+function okToLeave(){ if(!ST.dirty) return true; const ok = typeof window.confirm === 'function' && window.confirm('しまっていない変更があります。捨てて進みますか?'); if(ok) ST.dirty = false; return ok; }
+
+function sl(o, f, label, v, min, max, step){
+  return `<label class="sl"><span>${label}</span><input type="range" data-o="${o}" data-f="${f}" min="${min}" max="${max}" step="${step}" value="${v}"><output>${fmtN(+v)}</output></label>`;
+}
+function swatches(target, cur, withMetal, withNone){
+  const items = [];
+  if(withMetal) [['m1','地金1'],['m2','地金2'],['m3','地金3']].forEach(([v, n], i) => items.push(`<button class="sw" data-act="st-color" data-target="${target}" data-v="${v}" aria-pressed="${cur === v}" title="${n}" style="background:${A.metal(ST.preview)[i]}">${i+1}</button>`));
+  A.PALETTE.forEach(c => items.push(`<button class="sw" data-act="st-color" data-target="${target}" data-v="${c}" aria-pressed="${cur === c}" style="background:${c}" aria-label="${c}"></button>`));
+  if(withNone) items.push(`<button class="sw" data-act="st-color" data-target="${target}" data-v="none" aria-pressed="${!cur || cur === 'none'}" title="なし">なし</button>`);
+  return `<div class="swatches">${items.join('')}</div>`;
+}
+function partShelf(act, pressedId){
+  const all = [...A.BUILTIN, ...S.data.parts];
+  return A.KINDS.map(k => {
+    const ps = all.filter(p => p.kind === k);
+    return `<div class="note" style="margin:6px 0 2px">${k}</div><div class="thumbs">${ps.map(p =>
+      `<button class="thumb" data-act="${act}" data-id="${h(p.id)}" aria-pressed="${pressedId === p.id}" title="${h(p.name)}">${A.partSvg(p, ST.preview)}${h(p.name)}${p.builtin ? '' : '★'}</button>`).join('') || '<span class="note">なし</span>'}</div>`;
+  }).join('');
+}
+function partPanel(){
+  const p = ST.part, s = curShape();
+  const list = p.shapes.map((x, i) => `<li class="${i === ST.sel ? 'sel' : ''}"><span class="nm" data-act="st-sel" data-i="${i}">${i+1}. ${A.SHAPE_NAMES[x.t]}${x.cut ? '(くり抜き)' : ''}</span>
+    <button class="ib" data-act="st-up" data-i="${i}" title="上に重ねる" ${i === p.shapes.length-1 ? 'disabled' : ''}>上へ</button><button class="ib" data-act="st-down" data-i="${i}" title="下に回す" ${i === 0 ? 'disabled' : ''}>下へ</button>
+    <button class="ib" data-act="st-dup" data-i="${i}">写す</button><button class="ib" data-act="st-del" data-i="${i}">消す</button></li>`).join('');
+  let props = '<p class="note">図形を置くか、並びから選ぶと、ここで直せます。絵の上でつまんで動かせます。</p>';
+  if(s){
+    const g = [];
+    if(s.t === 'circle') g.push(sl('shape','r','半径', s.r, 1, 60, .5));
+    if(s.t === 'ellipse') g.push(sl('shape','rx','横の半径', s.rx, 1, 60, .5), sl('shape','ry','縦の半径', s.ry, 1, 60, .5));
+    if(s.t === 'rect') g.push(sl('shape','w','幅', s.w, 1, 100, .5), sl('shape','h','高さ', s.h, 1, 100, .5), sl('shape','rx','角の丸み', s.rx || 0, 0, 30, .5));
+    if(s.t === 'poly' || s.t === 'star') g.push(sl('shape','n', s.t === 'star' ? '角の数' : '辺の数', s.n, 3, 16, 1), sl('shape','r','外の半径', s.r, 1, 60, .5));
+    if(s.t === 'star') g.push(sl('shape','r2','内の半径', s.r2, 1, 60, .5));
+    if(s.t === 'line' || s.t === 'path') g.push(`<div class="acts" style="margin:0"><button class="ib" data-act="st-pt-add">点を足す</button><button class="ib" data-act="st-pt-del" ${s.pts.length <= 2 ? 'disabled' : ''}>最後の点を消す</button>
+      <label class="note"><input type="checkbox" data-o="shape" data-f="smooth" ${s.smooth ? 'checked' : ''}>なめらか</label>
+      ${s.t === 'path' ? `<label class="note"><input type="checkbox" data-o="shape" data-f="closed" ${s.closed !== false ? 'checked' : ''}>閉じる</label>` : ''}</div><p class="note" style="margin:2px 0">絵の上の小さな丸をつまむと、点を動かせます。</p>`);
+    props = `<h3>${A.SHAPE_NAMES[s.t]}を直す</h3>
+      ${sl('shape','x','横の位置', s.x ?? 50, 0, 100, .5)}${sl('shape','y','縦の位置', s.y ?? 50, 0, 100, .5)}
+      ${sl('shape','s','大きさ', s.s ?? 1, .1, 3, .01)}${sl('shape','rot','向き', s.rot || 0, -180, 180, 1)}${g.join('')}
+      ${s.t !== 'line' ? `<div class="note">塗り</div>${swatches('fill', s.fill, true, true)}` : ''}
+      <div class="note">線</div>${swatches('stroke', s.sw > 0 ? s.stroke : 'none', true, false)}${sl('shape','sw','線の太さ', s.sw || 0, 0, 12, .5)}
+      <label class="note"><input type="checkbox" data-o="shape" data-f="cut" ${s.cut ? 'checked' : ''}>くり抜く(下の図形に穴をあける)</label>`;
+  }
+  return `<section><details class="shelfbox" ${p.shapes.length ? '' : 'open'}><summary><h3 style="display:inline">部品の棚</h3> <span class="note">(押すと開く・閉じる)</span></summary><p class="note" style="margin:0">★は自分で作った部品。最初からある部品は、直すと新しい部品になります。</p>${partShelf('st-pick-part', p.id)}</details>
+      <div class="acts"><button class="btn line small" data-act="st-new-part">新しい部品</button></div></section>
+    <section class="form"><h3>${p.id ? '部品を直す' : '新しい部品'}${ST.dirty ? '(しまっていない変更あり)' : ''}</h3>
+      <label class="f">名前<input type="text" data-o="part" data-f="name" value="${h(p.name)}" maxlength="20"></label>
+      <div class="two"><label class="f">種類<select data-o="part" data-f="kind">${A.KINDS.map(k => `<option ${p.kind === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+      <label class="f">試しに塗る地金<select data-o="st" data-f="preview">${Object.entries(A.METAL_NAMES).map(([k, n]) => `<option value="${k}" ${ST.preview === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div></section>
+    <section><h3>図形を置く</h3><div class="acts" style="margin:0">${['circle','rect','poly','star','line','path'].map(t => `<button class="ib" data-act="st-add-shape" data-v="${t}">${A.SHAPE_NAMES[t]}</button>`).join('')}</div></section>
+    <section><h3>図形の並び(下から順に重なる)</h3>${list ? `<ul class="items">${list}</ul>` : '<p class="note">まだ図形がありません。</p>'}</section>
+    <section>${props}</section>
+    <div class="acts"><button class="btn" data-act="st-save-part">部品の棚にしまう</button>${p.id ? '<button class="btn line" data-act="st-del-part">この部品を消す</button>' : ''}</div>`;
+}
+function artPanel(){
+  const a = ST.art, L = curLayer(), t = a.text || {};
+  const arts = S.data.arts.map(x => `<button class="thumb" data-act="st-pick-art" data-id="${h(x.id)}" aria-pressed="${a.id === x.id}" title="${h(x.name)}">${A.artSvg(x, getPart, { size: 48 })}${h(x.name)}</button>`).join('');
+  const list = a.layers.map((x, i) => { const p = getPart(x.part); return `<li class="${i === ST.lsel ? 'sel' : ''}"><span class="nm" data-act="st-lsel" data-i="${i}">${i+1}. ${h(p ? p.name : '(なくなった部品)')}・${h(A.METAL_NAMES[x.metal] || '好きな色')}</span>
+    <button class="ib" data-act="st-lup" data-i="${i}" ${i === a.layers.length-1 ? 'disabled' : ''}>上へ</button><button class="ib" data-act="st-ldown" data-i="${i}" ${i === 0 ? 'disabled' : ''}>下へ</button>
+    <button class="ib" data-act="st-ldup" data-i="${i}">写す</button><button class="ib" data-act="st-ldel" data-i="${i}">消す</button></li>`; }).join('');
+  const custom = L && !A.METALS[L.metal] ? L.metal : '#2b4a86';
+  const props = L ? `<h3>選んだ部品</h3>
+    ${sl('layer','x','横の位置', L.x, 0, 100, .5)}${sl('layer','y','縦の位置', L.y, 0, 100, .5)}${sl('layer','s','大きさ', L.s, .05, 2, .01)}${sl('layer','rot','向き', L.rot || 0, -180, 180, 1)}
+    <div class="note">地金の色</div><div class="swatches">${Object.entries(A.METAL_NAMES).map(([k, n]) => `<button class="sw" style="width:auto;padding:0 8px;background:${A.METALS[k][1]}" data-act="st-metal" data-v="${k}" aria-pressed="${L.metal === k}">${n}</button>`).join('')}
+    <label class="note" style="display:flex;align-items:center;gap:4px">好きな色<input type="color" data-o="layer" data-f="metal" value="${custom}"></label></div>`
+    : '<p class="note">部品を選ぶと、位置・大きさ・向き・地金の色を決められます。絵の上でつまんで動かせます。</p>';
+  return `<section><h3>勲章の一覧</h3>${arts ? `<div class="thumbs">${arts}</div>` : '<p class="note">まだ勲章はありません。</p>'}
+      <div class="acts"><button class="btn line small" data-act="st-new-art">新しい勲章</button></div></section>
+    <section class="form"><h3>${a.id ? '勲章を直す' : '新しい勲章'}${ST.dirty ? '(しまっていない変更あり)' : ''}</h3>
+      <label class="f">名前<input type="text" data-o="art" data-f="name" value="${h(a.name)}" maxlength="20"></label></section>
+    <section><h3>部品を重ねる(押すと一番上に乗る)</h3>${partShelf('st-add-layer')}</section>
+    <section><h3>重ねた部品(下から順に)</h3>${list ? `<ul class="items">${list}</ul>` : '<p class="note">まだ部品がありません。</p>'}</section>
+    <section>${props}</section>
+    <section class="form"><h3>文字(任意・短く)</h3>
+      <label class="f">文字<input type="text" data-o="text" data-f="str" value="${h(t.str || '')}" maxlength="6"></label>
+      ${sl('text','y','縦の位置', t.y ?? 58, 10, 100, .5)}${sl('text','size','大きさ', t.size || 14, 4, 40, .5)}
+      <label class="note" style="display:flex;align-items:center;gap:6px">文字の色<input type="color" data-o="text" data-f="fill" value="${h(t.fill || '#3a2a0c')}"></label></section>
+    <div class="acts"><button class="btn" data-act="st-save-art">勲章をしまう</button>${a.id ? '<button class="btn line" data-act="st-del-art">この勲章を消す</button>' : ''}</div>
+    <p class="note">実績に結びつけるのは、設定の「変更を申し出る」から(審査会議を通します)。</p>`;
+}
+function renderStudio(){
+  ensureStudio();
+  return `<h2>工房</h2><div class="chips"><button class="chip" data-act="st-mode" data-v="part" aria-pressed="${ST.mode === 'part'}">部品の工房</button><button class="chip" data-act="st-mode" data-v="art" aria-pressed="${ST.mode === 'art'}">勲章の工房</button></div>
+    <div class="studio"><div class="stage"><svg id="st-canvas" viewBox="0 0 100 100" role="img" aria-label="作っている絵"></svg></div>
+    <div class="panel" id="st-panel">${ST.mode === 'part' ? partPanel() : artPanel()}</div></div>`;
+}
+function renderPanel(){ const el = $('#st-panel'); if(el) el.innerHTML = ST.mode === 'part' ? partPanel() : artPanel(); }
+const GRID = (() => { let g = ''; for(let i = 10; i < 100; i += 10) g += `<path d="M${i} 0V100M0 ${i}H100" stroke="${i === 50 ? '#c9cdd6' : '#eceef2'}" stroke-width="${i === 50 ? .4 : .3}"/>`; return `<g pointer-events="none">${g}</g>`; })();
+function toWorld(s, p){ const a = (s.rot || 0)*Math.PI/180, k = s.s ?? 1; return [(s.x || 0) + k*(p[0]*Math.cos(a) - p[1]*Math.sin(a)), (s.y || 0) + k*(p[0]*Math.sin(a) + p[1]*Math.cos(a))]; }
+function toLocal(s, w){ const a = -(s.rot || 0)*Math.PI/180, k = s.s ?? 1, dx = (w[0] - (s.x || 0))/k, dy = (w[1] - (s.y || 0))/k; return [+(dx*Math.cos(a) - dy*Math.sin(a)).toFixed(2), +(dx*Math.sin(a) + dy*Math.cos(a)).toFixed(2)]; }
+function reach(s){
+  const k = s.s ?? 1;
+  if(s.t === 'circle') return s.r*k; if(s.t === 'ellipse') return Math.max(s.rx, s.ry)*k; if(s.t === 'rect') return Math.hypot(s.w, s.h)/2*k;
+  if(s.t === 'poly' || s.t === 'star') return s.r*k; return Math.max(4, ...s.pts.map(p => Math.hypot(p[0], p[1])))*k;
+}
+function drawCanvas(){
+  const svg = $('#st-canvas'); if(!svg) return;
+  let inner = GRID;
+  if(ST.mode === 'part'){
+    const pal = A.metal(ST.preview), p = ST.part;
+    inner += `<g pointer-events="none">${A.partInner(p, pal)}</g>`;
+    inner += p.shapes.map((s, i) => `<g data-i="${i}" pointer-events="all" style="cursor:move">${A.shapeSvg(s, pal, 'hit')}</g>`).join('');
+    const s = curShape();
+    if(s){
+      inner += `<circle class="selmark" cx="${s.x}" cy="${s.y}" r="${fmtN(reach(s) + 2)}"/><path class="selmark" d="M${s.x - 2} ${s.y}h4M${s.x} ${s.y - 2}v4"/>`;
+      if(s.pts) inner += s.pts.map((pt, j) => { const w = toWorld(s, pt); return `<circle class="handle" data-h="${j}" cx="${fmtN(w[0])}" cy="${fmtN(w[1])}" r="2.2"/>`; }).join('');
+    }
+  } else {
+    inner += A.artInner(ST.art, getPart, { hit: true });
+    const L = curLayer();
+    if(L) inner += `<circle class="selmark" cx="${L.x}" cy="${L.y}" r="${fmtN(Math.max(3, 48*L.s))}"/><path class="selmark" d="M${L.x - 2} ${L.y}h4M${L.x} ${L.y - 2}v4"/>`;
+  }
+  svg.innerHTML = inner;
+}
+function syncSliders(){
+  document.querySelectorAll('#st-panel input[type=range]').forEach(inp => {
+    const obj = targetOf(inp.dataset.o); if(!obj) return;
+    const v = obj[inp.dataset.f]; if(v === undefined) return;
+    inp.value = v; const out = inp.nextElementSibling; if(out) out.textContent = fmtN(+v);
+  });
+}
+function targetOf(o){
+  if(o === 'shape') return curShape(); if(o === 'layer') return curLayer(); if(o === 'part') return ST.part;
+  if(o === 'art') return ST.art; if(o === 'text'){ ST.art.text = ST.art.text || {}; return ST.art.text; } if(o === 'st') return ST;
+  return null;
+}
+function onStudioInput(e){
+  const el = e.target; if(!el.dataset || !el.dataset.o || !el.closest('#st-panel')) return;
+  const obj = targetOf(el.dataset.o); if(!obj) return;
+  const f = el.dataset.f;
+  let v = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value;
+  if(f === 'n') v = Math.round(v);
+  obj[f] = v;
+  if(el.dataset.o !== 'st') ST.dirty = true;
+  if(el.type === 'range'){ const out = el.nextElementSibling; if(out) out.textContent = fmtN(v); }
+  drawCanvas();
+  if(e.type === 'change' && (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'color')) renderPanel();
+}
+let drag = null;
+function svgPt(svg, e){
+  if(!svg.getScreenCTM || !svg.createSVGPoint) return null;
+  const m = svg.getScreenCTM(); if(!m) return null;
+  const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(m.inverse()); return [q.x, q.y];
+}
+function onPointerDown(e){
+  const svg = e.target.closest && e.target.closest('#st-canvas'); if(!svg) return;
+  const pt = svgPt(svg, e); if(!pt) return;
+  const hd = e.target.closest('[data-h]'), hit = e.target.closest('[data-i]');
+  if(ST.mode === 'part'){
+    if(hd && curShape()) drag = { kind: 'pt', h: +hd.dataset.h };
+    else if(hit){ const i = +hit.dataset.i; if(i !== ST.sel){ ST.sel = i; renderPanel(); } const s = curShape(); drag = { kind: 'move', start: pt, ox: s.x, oy: s.y }; }
+    else return;
+  } else {
+    if(!hit) return;
+    const i = +hit.dataset.i; if(i !== ST.lsel){ ST.lsel = i; renderPanel(); }
+    const L = curLayer(); drag = { kind: 'move', start: pt, ox: L.x, oy: L.y };
+  }
+  if(svg.setPointerCapture) try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+  e.preventDefault(); drawCanvas();
+}
+function onPointerMove(e){
+  if(!drag) return;
+  const svg = $('#st-canvas'); if(!svg) return; const pt = svgPt(svg, e); if(!pt) return;
+  const obj = ST.mode === 'part' ? curShape() : curLayer(); if(!obj) return;
+  if(drag.kind === 'move'){ obj.x = +clamp(drag.ox + pt[0] - drag.start[0], -20, 120).toFixed(1); obj.y = +clamp(drag.oy + pt[1] - drag.start[1], -20, 120).toFixed(1); }
+  else obj.pts[drag.h] = toLocal(obj, pt);
+  ST.dirty = true; drawCanvas(); syncSliders();
+}
+function onPointerUp(){ if(drag){ drag = null; renderPanel(); } }
+
+const Studio = {
+  mode(v){ if(v === ST.mode) return; ST.mode = v; render(); },
+  newPart(){ if(!okToLeave()) return; ST.part = blankPart(); ST.sel = -1; render(); },
+  pickPart(id){
+    if(!okToLeave()) return;
+    const src = getPart(id); if(!src) return;
+    ST.part = E.clone(src);
+    if(src.builtin){ delete ST.part.builtin; ST.part.id = null; ST.part.name = src.name + '(直し)'; }
+    ST.sel = ST.part.shapes.length ? ST.part.shapes.length - 1 : -1; render();
+  },
+  addShape(t){ const s = Object.assign({ x: 50, y: 50, s: 1, rot: 0, fill: 'm2', stroke: 'm3', sw: 0 }, NEW_SHAPE[t]()); ST.part.shapes.push(s); ST.sel = ST.part.shapes.length - 1; ST.dirty = true; render(); },
+  sel(i){ ST.sel = i; renderPanel(); drawCanvas(); },
+  move(list, i, dir, selKey){ const j = i + dir; if(j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; ST[selKey] = j; ST.dirty = true; render(); },
+  dup(list, i, selKey){ list.splice(i + 1, 0, E.clone(list[i])); ST[selKey] = i + 1; ST.dirty = true; render(); },
+  del(list, i, selKey){ list.splice(i, 1); ST[selKey] = Math.min(ST[selKey], list.length - 1); ST.dirty = true; render(); },
+  color(target, v){
+    const s = curShape(); if(!s) return;
+    if(target === 'fill') s.fill = v; else { s.stroke = v; if(!(s.sw > 0)) s.sw = 2; }
+    ST.dirty = true; renderPanel(); drawCanvas();
+  },
+  ptAdd(){ const s = curShape(); if(!s || !s.pts) return; const a = s.pts[s.pts.length - 1], b = s.pts[s.pts.length - 2] || [0,0]; s.pts.push([+(a[0] + (a[0]-b[0])*.5 + 4).toFixed(1), +(a[1] + (a[1]-b[1])*.5).toFixed(1)]); ST.dirty = true; renderPanel(); drawCanvas(); },
+  ptDel(){ const s = curShape(); if(!s || !s.pts || s.pts.length <= 2) return; s.pts.pop(); ST.dirty = true; renderPanel(); drawCanvas(); },
+  async savePart(){
+    const p = E.clone(ST.part); p.name = (p.name || '').trim();
+    if(!p.name){ toast('部品に名前を付けてください', true); return null; }
+    if(!p.shapes.length){ toast('図形が1つもありません', true); return null; }
+    const id = await commit(d => {
+      if(p.id){ const cur = d.parts.find(x => x.id === p.id); if(cur){ Object.assign(cur, E.clone(p)); return p.id; } }
+      const np = Object.assign(E.clone(p), { id: E.newId('p-') }); d.parts.push(np); return np.id;
+    }, `部品 ${p.name}`, () => '部品の棚にしまいました');
+    if(id){ ST.part.id = id; ST.part.name = p.name; ST.dirty = false; render(); }
+    return id;
+  },
+  async delPart(){
+    const p = ST.part; if(!p.id) return;
+    if(S.data.arts.some(a => a.layers.some(L => L.part === p.id))){ toast('この部品を使っている勲章があるので消せません', true); return; }
+    const ok = await commit(d => { d.parts = d.parts.filter(x => x.id !== p.id); return true; }, `部品を消す ${p.name}`, () => '部品を消しました');
+    if(ok){ ST.part = blankPart(); ST.sel = -1; ST.dirty = false; render(); }
+  },
+  newArt(){ if(!okToLeave()) return; ST.art = blankArt(); ST.lsel = -1; render(); },
+  pickArt(id){ if(!okToLeave()) return; const a = findArt(id); if(!a) return; ST.art = E.clone(a); ST.art.text = ST.art.text || { str: '', y: 58, size: 14, fill: '#3a2a0c' }; ST.lsel = -1; render(); },
+  addLayer(id){ const p = getPart(id); if(!p) return; const L = { part: id, x: 50, y: 50, s: p.kind === '紋' ? .55 : 1, rot: 0, metal: 'gold' }; ST.art.layers.push(L); ST.lsel = ST.art.layers.length - 1; ST.dirty = true; render(); },
+  lsel(i){ ST.lsel = i; renderPanel(); drawCanvas(); },
+  metal(v){ const L = curLayer(); if(!L) return; L.metal = v; ST.dirty = true; renderPanel(); drawCanvas(); },
+  async saveArt(){
+    const a = E.clone(ST.art); a.name = (a.name || '').trim();
+    if(!a.name){ toast('勲章に名前を付けてください', true); return null; }
+    if(!a.layers.length){ toast('部品が1つもありません', true); return null; }
+    const id = await commit(d => {
+      if(a.id){ const cur = d.arts.find(x => x.id === a.id); if(cur){ Object.assign(cur, E.clone(a)); return a.id; } }
+      const na = Object.assign(E.clone(a), { id: E.newId('art-') }); d.arts.push(na); return na.id;
+    }, `勲章 ${a.name}`, () => '勲章をしまいました');
+    if(id){ ST.art.id = id; ST.art.name = a.name; ST.dirty = false; render(); }
+    return id;
+  },
+  async delArt(){
+    const a = ST.art; if(!a.id) return;
+    if(S.data.achievements.some(x => x.art === a.id)){ toast('この勲章が結びついた実績があるので消せません', true); return; }
+    const ok = await commit(d => { d.arts = d.arts.filter(x => x.id !== a.id); return true; }, `勲章を消す ${a.name}`, () => '勲章を消しました');
+    if(ok){ ST.art = blankArt(); ST.lsel = -1; ST.dirty = false; render(); }
+  },
+};
+function studioClick(act, b){
+  const i = +b.dataset.i;
+  switch(act){
+    case 'st-mode': return Studio.mode(b.dataset.v);
+    case 'st-new-part': return Studio.newPart();
+    case 'st-pick-part': return Studio.pickPart(b.dataset.id);
+    case 'st-add-shape': return Studio.addShape(b.dataset.v);
+    case 'st-sel': return Studio.sel(i);
+    case 'st-up': return Studio.move(ST.part.shapes, i, 1, 'sel');
+    case 'st-down': return Studio.move(ST.part.shapes, i, -1, 'sel');
+    case 'st-dup': return Studio.dup(ST.part.shapes, i, 'sel');
+    case 'st-del': return Studio.del(ST.part.shapes, i, 'sel');
+    case 'st-color': return Studio.color(b.dataset.target, b.dataset.v);
+    case 'st-pt-add': return Studio.ptAdd();
+    case 'st-pt-del': return Studio.ptDel();
+    case 'st-save-part': return Studio.savePart();
+    case 'st-del-part': return Studio.delPart();
+    case 'st-new-art': return Studio.newArt();
+    case 'st-pick-art': return Studio.pickArt(b.dataset.id);
+    case 'st-add-layer': return Studio.addLayer(b.dataset.id);
+    case 'st-lsel': return Studio.lsel(i);
+    case 'st-lup': return Studio.move(ST.art.layers, i, 1, 'lsel');
+    case 'st-ldown': return Studio.move(ST.art.layers, i, -1, 'lsel');
+    case 'st-ldup': return Studio.dup(ST.art.layers, i, 'lsel');
+    case 'st-ldel': return Studio.del(ST.art.layers, i, 'lsel');
+    case 'st-metal': return Studio.metal(b.dataset.v);
+    case 'st-save-art': return Studio.saveArt();
+    case 'st-del-art': return Studio.delArt();
+  }
+}
+
+/* ===================== 認定の演出 ===================== */
+function celebrate(achId, renewal){
+  const a = E.findAch(S.data, achId); if(!a) return;
+  const old = $('#fanfare'); if(old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'fanfare'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', `${a.name}を${renewal ? '更新' : '認定'}`);
+  const colors = ['#c9a24a','#f4dc8f','#7d1f2c','#2b4a86','#ffffff','#b8bec9'];
+  let cf = '';
+  for(let i = 0; i < 70; i++) cf += `<i class="cf" style="left:${(Math.random()*100).toFixed(1)}%;background:${colors[i % colors.length]};animation-duration:${(2.6 + Math.random()*2.6).toFixed(2)}s;animation-delay:${(Math.random()*.9).toFixed(2)}s;rotate:${Math.floor(Math.random()*360)}deg"></i>`;
+  el.innerHTML = `<svg class="rays" viewBox="0 0 100 100" aria-hidden="true">${A.partInner(A.builtin('b-hikari'), A.metal('gold'))}</svg>${cf}
+    <div class="big">${achMedal(a, 'got', 200)}</div><h2>${h(a.name)}</h2><p>${renewal ? '更新しました。勲章がまた輝きます' : '認定されました'}</p><p class="close">押すと閉じます</p>`;
+  el.addEventListener('click', () => el.remove());
+  document.body.appendChild(el);
 }
 
 /* ---- 操作 ---- */
@@ -669,7 +1278,7 @@ const Actions = {
       if(res.ruleId) parts.push('ルールの変更を反映しました');
       if(res.newRights.length) parts.push('挑戦権を得ました:' + res.newRights.map(chName).join('、'));
       return parts.join('。');
-    });
+    }).then(res => { if(ok && res && res.granted) celebrate(res.granted.achId, res.granted.renewal); return res; });
   },
   async ruleSubmit(){
     const { raw, note } = readRuleForm();
@@ -700,7 +1309,26 @@ document.addEventListener('click', e => {
   else if(act === 'propose-edit') Actions.startRule('edit', b.dataset.type, b.dataset.id);
   else if(act === 'rule-cancel'){ S.ruleDraft = null; render(); }
   else if(act === 'rule-submit') Actions.ruleSubmit();
+  else if(act === 'goto-def'){ S.tab = 'settings'; S.field = 'all'; render(); const el = document.getElementById('def-' + b.dataset.id); if(el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
+  else if(act === 'goto-apply'){ S.tab = 'review'; S.applyPreset = b.dataset.id; render(); }
+  else if(act.startsWith('st-')) studioClick(act, b);
 });
+document.addEventListener('click', e => {
+  const n = e.target.closest && e.target.closest('[data-node]');
+  if(!n) return;
+  S.treeSel = S.treeSel === n.dataset.node ? null : n.dataset.node; render();
+  const dt = $('#tree-detail'); if(dt && dt.scrollIntoView && window.innerWidth < 760) dt.scrollIntoView({ block: 'nearest' });
+});
+document.addEventListener('keydown', e => {
+  const n = e.target.closest && e.target.closest('[data-node]');
+  if(n && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); n.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+});
+document.addEventListener('input', onStudioInput);
+document.addEventListener('change', onStudioInput);
+document.addEventListener('pointerdown', onPointerDown);
+document.addEventListener('pointermove', onPointerMove);
+document.addEventListener('pointerup', onPointerUp);
+document.addEventListener('pointercancel', onPointerUp);
 
 function initConn(){
   $('#ver').textContent = VERSION;
@@ -716,7 +1344,7 @@ function initConn(){
   if(!S.cfg.token) panel.hidden = false;
 }
 
-const App = { S, E, Actions, render, loadAll, save, VERSION };
+const App = { S, E, A, Actions, Studio, treeLayout, celebrate, render, loadAll, save, VERSION };
 window.App = App;
 initConn();
 render();
