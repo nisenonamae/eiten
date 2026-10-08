@@ -198,7 +198,8 @@ const DATA = 'roadmap/apps/eiten/data.json';
     ok(Lm.nodes.find(n => n.key === 'a:a2').outside && !Lm.nodes.find(n => n.key === 'c:c1'), '分野ごとの図ではほかの分野の前提を薄く出す');
     click(w, '[data-tab="tree"]');
     ok(doc.querySelectorAll('.tree [data-node]').length === 5 && doc.querySelectorAll('.tree .lane').length === 2 && doc.querySelector('.tree .e-on'), '図に5つ・欄の見出し・達成した線');
-    ok(doc.querySelector('[data-node="a:m2"] .ico').getAttribute('filter') === 'url(#t-gray)', '鍵のかかったものは灰色');
+    ok(doc.querySelector('[data-node="a:m2"] .ico .m-socket') && doc.querySelector('[data-node="a:a1"] .ico .m-got'), 'まだのものははめ込む穴・手に入れたものは紋章');
+    { const y = k => L.nodes.find(n => n.key === k).y; ok(y('a:a1') > y('a:a2') && y('a:a2') > y('a:m2'), '下から上へ伸びる'); }
     click(w, '[data-node="c:c1"]');
     ok(/持っている:英検準1級/.test(doc.getElementById('tree-detail').textContent) && /鍵がかかっている/.test(doc.getElementById('tree-detail').textContent), '押すと説明が出る');
     click(w, '[data-node="a:a2"]');

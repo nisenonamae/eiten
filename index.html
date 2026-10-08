@@ -137,8 +137,17 @@ textarea{min-height:70px;resize:vertical}
 .tn text{font-family:var(--mincho);font-size:12.5px;font-weight:700;fill:#f4ecd0;text-anchor:middle}
 .tn-got .plq{fill:#3f5f2c;stroke:#d9bf6a}
 .tn-locked .plq{fill:#24241f;stroke:#55554a}
+.tn-open .plq{fill:#33332a}
 .tn-locked text{fill:#99978a}
 .tn-out{opacity:.45}
+.m-socket :is(path,circle,rect,ellipse,polygon){fill:#16170f!important;stroke:#4c4838!important;stroke-width:2.2;stroke-dasharray:none;opacity:1!important}
+.m-socket text{display:none}
+.tn-open .m-socket :is(path,circle,rect,ellipse,polygon){stroke:#a8915a!important}
+.tn .sock{fill:#16170f;stroke:#4c4838;stroke-width:3}
+.tn-open .sock{stroke:#a8915a}
+.tn .keyhole{fill:#4c4838}
+.tn-open .keyhole{fill:#a8915a}
+
 .tn-sel .plq,.tn:focus-visible .plq{stroke:#fff1b0;stroke-width:2.4}
 .tn:hover .plq{stroke:#fff1b0}
 .hoi .detail{background:linear-gradient(#2c2d25,#22231d);border:1px solid #8a7a48;box-shadow:inset 0 0 0 1px #15160f;color:#e9e1c6;border-radius:2px;margin:10px 0 0}
@@ -242,7 +251,7 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r5';
+const VERSION = '2026-10-09 r6';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
@@ -550,7 +559,7 @@ const A = (() => {
   }
   function artSvg(art, getPart, opts){
     opts = opts || {}; const size = opts.size || 84, mode = opts.mode || 'got';
-    return `<svg class="medal m-${mode}" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">${artInner(art, getPart, { noCut: mode === 'shadow' })}</svg>`;
+    return `<svg class="medal m-${mode}" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">${artInner(art, getPart, { noCut: mode === 'shadow' || mode === 'socket' })}</svg>`;
   }
 
   /* --- 最初から用意する部品 --- */
@@ -883,7 +892,7 @@ function achMedal(a, mode, size){
 const medalRatio = a => findArt(a.art) ? 1 : 1.2;
 
 /* ===================== 樹形図 ===================== */
-const TREE = { COL: 136, ROW: 152, TOP: 86, PADX: 20, GAP: 16 };
+const TREE = { COL: 136, ROW: 152, TOP: 52, PADX: 20, GAP: 16 };
 // 分野ごとの欄(レーン)に分け、必要実績の深さで段に並べる
 function treeLayout(d, field, t){
   const inF = x => field === 'all' || (x.fields || []).includes(field);
@@ -930,22 +939,22 @@ function treeLayout(d, field, t){
       row.forEach(n => {
         let best = 0, bd = Infinity;
         for(let c = 0; c < cols; c++){ if(taken.has(c)) continue; const cx = L.x0 + (c + .5)*TREE.COL, dist = Math.abs(cx - n.bary); if(dist < bd - .01){ bd = dist; best = c; } }
-        taken.add(best); n.x = L.x0 + (best + .5)*TREE.COL; n.y = TREE.TOP + dd*TREE.ROW; pos.set(n.key, n.x);
+        taken.add(best); n.x = L.x0 + (best + .5)*TREE.COL; n.y = TREE.TOP + (maxD - dd)*TREE.ROW; pos.set(n.key, n.x);
       });
     });
   }
-  const W = Math.max(320, x - TREE.GAP + TREE.PADX), H = TREE.TOP + maxD*TREE.ROW + 84;
-  return { nodes, edges, lanes, W, H };
+  const W = Math.max(320, x - TREE.GAP + TREE.PADX), base = TREE.TOP + maxD*TREE.ROW + 74, H = base + 42;
+  return { nodes, edges, lanes, W, H, base };
 }
 function nodeState(n, t){
   return n.type === 'a' ? E.achStatus(S.data, n.obj, t) : E.challengeStatus(S.data, n.obj, t);
 }
 function treeSvg(L, t){
   const at = new Map(L.nodes.map(n => [n.key, n]));
-  const lanes = L.lanes.map((ln, i) => `<g class="lane">${i ? `<line x1="${ln.x0 - TREE.GAP/2}" y1="8" x2="${ln.x0 - TREE.GAP/2}" y2="${L.H - 8}"/>` : ''}
-    <rect x="${ln.x0 + 6}" y="12" width="${ln.x1 - ln.x0 - 12}" height="30" rx="2"/><text x="${(ln.x0 + ln.x1)/2}" y="32">${h(ln.name)}</text></g>`).join('');
+  const lanes = L.lanes.map((ln, i) => `<g class="lane">${i ? `<line x1="${ln.x0 - TREE.GAP/2}" y1="8" x2="${ln.x0 - TREE.GAP/2}" y2="${L.base - 6}"/>` : ''}
+    <rect x="${ln.x0 + 6}" y="${L.base}" width="${ln.x1 - ln.x0 - 12}" height="30" rx="2"/><text x="${(ln.x0 + ln.x1)/2}" y="${L.base + 20}">${h(ln.name)}</text></g>`).join('');
   // 線:親の下から降り、子の段の少し上で横に渡り、子へ降りる
-  const paths = L.edges.map(e => { const a = at.get(e.from), b = at.get(e.to); const y1 = a.y + 58, y2 = b.y - 36, my = b.y - 56;
+  const paths = L.edges.map(e => { const a = at.get(e.from), b = at.get(e.to); const y1 = a.y - 36, y2 = b.y + 56, my = b.y + 76;
     return { d: `M${a.x} ${y1}V${my}H${b.x}V${y2}`, on: e.on }; });
   const edges = paths.map(p => `<path class="e-under" d="${p.d}"/>`).join('') + paths.filter(p => !p.on).map(p => `<path class="e-off" d="${p.d}"/>`).join('') + paths.filter(p => p.on).map(p => `<path class="e-on" d="${p.d}"/>`).join('');
   const nodes = L.nodes.map(n => {
@@ -954,22 +963,22 @@ function treeSvg(L, t){
     const cls = `tn tn-${st.state}${n.outside ? ' tn-out' : ''}${S.treeSel === n.key ? ' tn-sel' : ''}`;
     let icon;
     if(n.type === 'a'){
-      const mode = st.state === 'got' ? (st.expired ? 'expired' : st.near ? 'near' : 'got') : 'got';
+      const mode = st.state === 'got' ? (st.expired ? 'expired' : st.near ? 'near' : 'got') : 'socket';
       const size = medalRatio(n.obj) > 1 ? 50 : 60, hh = size*medalRatio(n.obj);
       icon = `<g transform="translate(${-size/2} ${-hh/2 - 2})">${achMedal(n.obj, mode, size)}</g>`;
     } else {
-      icon = `<path d="M-19 24V-6A19 19 0 0 1 19 -6V24Z" fill="#5a3f24" stroke="#d9bf6a" stroke-width="3"/><path d="M-19 24V-6A19 19 0 0 1 19 -6V24" fill="none" stroke="#3a2814" stroke-width="1" transform="scale(.8)"/>` +
-        (st.state === 'got' ? `<circle r="2.6" cx="10" cy="6" fill="#f3e2a4"/>` : `<path d="M-3.5 4a3.5 3.5 0 1 1 7 0l-1.6 8h-3.8z" fill="#f3e2a4"/>`);
+      icon = st.state === 'got'
+        ? `<path d="M-19 24V-6A19 19 0 0 1 19 -6V24Z" fill="#5a3f24" stroke="#d9bf6a" stroke-width="3"/><path d="M-19 24V-6A19 19 0 0 1 19 -6V24" fill="none" stroke="#3a2814" stroke-width="1" transform="scale(.8)"/><circle r="2.6" cx="10" cy="6" fill="#f3e2a4"/>`
+        : `<path class="sock" d="M-19 24V-6A19 19 0 0 1 19 -6V24Z"/><path d="M-3.5 4a3.5 3.5 0 1 1 7 0l-1.6 8h-3.8z" class="keyhole"/>`;
     }
     return `<g class="${cls}" data-node="${h(n.key)}" tabindex="0" role="button" aria-label="${h(name)}" transform="translate(${n.x} ${n.y})"><title>${h(name)}</title>
       <rect class="hit" x="-62" y="-36" width="124" height="96" fill="transparent"/>
       ${st.state === 'got' ? '<circle class="glow" r="38" fill="url(#t-glow)"/>' : ''}
-      <g class="ico"${st.state === 'locked' ? ' filter="url(#t-gray)"' : ''}>${icon}</g>
+      <g class="ico">${icon}</g>
       <rect class="plq" x="-60" y="34" width="120" height="22" rx="2"/><text y="49.5">${label}</text></g>`;
   }).join('');
   return `<svg class="tree" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}">
-    <defs><radialGradient id="t-glow"><stop offset="0" stop-color="#f7dc7c" stop-opacity=".6"/><stop offset="1" stop-color="#f7dc7c" stop-opacity="0"/></radialGradient>
-    <filter id="t-gray"><feColorMatrix type="saturate" values="0.08"/><feComponentTransfer><feFuncR type="linear" slope=".55"/><feFuncG type="linear" slope=".55"/><feFuncB type="linear" slope=".55"/></feComponentTransfer></filter></defs>
+    <defs><radialGradient id="t-glow"><stop offset="0" stop-color="#f7dc7c" stop-opacity=".6"/><stop offset="1" stop-color="#f7dc7c" stop-opacity="0"/></radialGradient></defs>
     ${lanes}${edges}${nodes}</svg>`;
 }
 function treeDetail(n, t){
