@@ -111,30 +111,46 @@ textarea{min-height:70px;resize:vertical}
 #toast.show{display:block}
 
 
-/* 樹形図 */
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--sub);margin:4px 0 8px}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid;vertical-align:-1px;margin-right:4px}
-.tree-wrap{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:6px;-webkit-overflow-scrolling:touch}
+/* 樹形図(国家方針ツリー風) */
+.hoi{background:radial-gradient(ellipse at 50% 30%,#4b4a3b 0%,#34342b 55%,#25261f 100%);border:2px solid #15160f;box-shadow:inset 0 0 0 1px #6d6649,0 2px 10px rgba(0,0,0,.25);border-radius:4px;padding:10px 10px 12px;color:#e9e1c6;margin-top:8px}
+.hoi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hoi .chips{margin:0;flex:1}
+.hoi .chip{background:linear-gradient(#45443a,#2f2f27);border:1px solid #6d6649;color:#d9cfae;border-radius:2px;font-family:var(--mincho);padding:3px 14px}
+.hoi .chip[aria-pressed="true"]{background:linear-gradient(#6b5d33,#4a3f20);border-color:#e0c46e;color:#fff4cf;box-shadow:0 0 6px rgba(240,200,100,.35)}
+.hoi-count{font-family:var(--mincho);font-size:14px;color:#e8cf7a}
+.hoi .legend{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:12px;color:#bdb497;margin:8px 2px}
+.hoi .legend i{display:inline-block;width:16px;height:9px;border:1px solid;border-radius:1px;vertical-align:0;margin-right:5px}
+.lg-got{background:#3f5f2c;border-color:#d9bf6a!important}
+.lg-open{background:#3b3b31;border-color:#cdb36a!important}
+.lg-locked{background:#24241f;border-color:#55554a!important}
+.tree-wrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #15160f;background:rgba(0,0,0,.12);border-radius:2px}
 .tree{display:block;margin:0 auto}
-.edge{fill:none;stroke:#c9ccd5;stroke-width:2}
-.edge.on{stroke:var(--gilt);stroke-width:2.5}
+.lane line{stroke:#5b5644;stroke-width:1;stroke-dasharray:3 5}
+.lane rect{fill:#22231c;stroke:#8a7a48;stroke-width:1}
+.lane text{fill:#e8d9a6;font-family:var(--mincho);font-size:15px;font-weight:700;text-anchor:middle;letter-spacing:.12em}
+.e-under{fill:none;stroke:#14140f;stroke-width:6;stroke-linejoin:miter}
+.e-off{fill:none;stroke:#7b7865;stroke-width:2.4}
+.e-on{fill:none;stroke:#ecd27a;stroke-width:2.8}
 .tn{cursor:pointer}
 .tn:focus{outline:none}
-.tn:focus-visible .ring,.tn:focus-visible .door-n{stroke:var(--ink)}
-.tn .ring{fill:var(--card);stroke-width:3}
-.tn-got .ring{stroke:var(--gilt);fill:#fffaf0}
-.tn-open .ring{stroke:var(--lapis)}
-.tn-locked .ring{stroke:#a9aebb;stroke-dasharray:4 3}
-.tn .door-n{stroke-width:3}
-.tn-got .door-n{fill:#dfe6f3;stroke:var(--lapis)}
-.tn-open .door-n{fill:var(--card);stroke:var(--lapis)}
-.tn-locked .door-n{fill:var(--card);stroke:#a9aebb;stroke-dasharray:4 3}
-.tn-out{opacity:.5}
-.tn-sel .ring,.tn-sel .door-n{stroke-width:5}
-.tn text{font-size:12px;fill:var(--ink);text-anchor:middle}
-.tn-locked text{fill:var(--sub)}
+.tn .plq{fill:#3b3b31;stroke:#cdb36a;stroke-width:1.2}
+.tn text{font-family:var(--mincho);font-size:12.5px;font-weight:700;fill:#f4ecd0;text-anchor:middle}
+.tn-got .plq{fill:#3f5f2c;stroke:#d9bf6a}
+.tn-locked .plq{fill:#24241f;stroke:#55554a}
+.tn-locked text{fill:#99978a}
+.tn-out{opacity:.45}
+.tn-sel .plq,.tn:focus-visible .plq{stroke:#fff1b0;stroke-width:2.4}
+.tn:hover .plq{stroke:#fff1b0}
+.hoi .detail{background:linear-gradient(#2c2d25,#22231d);border:1px solid #8a7a48;box-shadow:inset 0 0 0 1px #15160f;color:#e9e1c6;border-radius:2px;margin:10px 0 0}
+.hoi .detail h3{font-family:var(--mincho);color:#f3dc8e;font-size:17px}
+.hoi .detail dt{color:#b3aa8c}
+.hoi .detail .tag{background:#45443a;color:#e9e1c6}
+.hoi .detail .note{color:#b3aa8c}
+.hoi .btn.line{color:#e9e1c6;border-color:#a99a68}
+.hoi .btn.gilt{background:linear-gradient(#d8b65e,#a8843a);border-color:#e9cf80}
+.hoi-hint{color:#b3aa8c;font-size:13px;margin:10px 2px 0}
+.hoi .empty{background:rgba(0,0,0,.2);color:#cfc6a6;border-color:#6d6649}
 .detail dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0;font-size:14px}
-.detail dt{color:var(--sub)}
 .detail dd{margin:0}
 .reqs{margin:0;padding:0;list-style:none}
 
@@ -226,7 +242,7 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r4';
+const VERSION = '2026-10-09 r5';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
@@ -416,9 +432,15 @@ const E = (() => {
     let replaced = 0;
     p.parts.forEach(x => replaced += up(d.parts, Object.assign({ kind: '紋' }, x, { builtin: undefined })));
     p.arts.forEach(x => replaced += up(d.arts, Object.assign({ text: { str: '' } }, x, { builtin: undefined })));
-    p.achievements.forEach(x => { if(findAch(d, x.id)) replaced++; saveDef(d, { type: 'achievement', id: x.id, raw: Object.assign({}, x, { __import: true }), today }); });
-    p.challenges.forEach(x => { if(findCh(d, x.id)) replaced++; saveDef(d, { type: 'challenge', id: x.id, raw: Object.assign({}, x, { __import: true }), today }); });
-    return { parts: p.parts.length, arts: p.arts.length, achievements: p.achievements.length, challenges: p.challenges.length, replaced, newRights: checkRights(d, today) };
+    // 必要実績は名前でも指定できる(requiresNames)。見つからない名前は飛ばす
+    const missingNames = [];
+    const withReqs = x => {
+      const ids = (x.requiresNames || []).map(n => { const a = d.achievements.find(y => y.name === n); if(!a) missingNames.push(n); return a && a.id; }).filter(Boolean);
+      return Object.assign({}, x, { requires: [...new Set([...(x.requires || []).filter(id => findAch(d, id)), ...ids])], __import: true });
+    };
+    p.achievements.forEach(x => { if(findAch(d, x.id)) replaced++; saveDef(d, { type: 'achievement', id: x.id, raw: withReqs(x), today }); });
+    p.challenges.forEach(x => { if(findCh(d, x.id)) replaced++; saveDef(d, { type: 'challenge', id: x.id, raw: withReqs(x), today }); });
+    return { parts: p.parts.length, arts: p.arts.length, achievements: p.achievements.length, challenges: p.challenges.length, replaced, missingNames, newRights: checkRights(d, today) };
   }
 
   // 条件がそろった挑戦権を渡す(一度得たものは取り上げない)
@@ -795,7 +817,8 @@ function importBox(){
   let prev = '';
   if(p){
     const medals = p.arts.map(a => `<div class="slot" style="padding-bottom:4px">${A.artSvg(a, id => getPart(id) || p.parts.find(x => x.id === id), { size: 72 })}<div class="sm">${h(a.name)}</div></div>`).join('');
-    const items = [...p.achievements.map(a => `実績「${h(a.name)}」${E.findAch(S.data, a.id) ? '(今あるものを上書き)' : ''}`), ...p.challenges.map(c => `挑戦権「${h(c.name)}」${E.findCh(S.data, c.id) ? '(今あるものを上書き)' : ''}`),
+    const reqNote = a => (a.requiresNames || []).length ? `・必要実績:${a.requiresNames.map(n => h(n) + (S.data.achievements.some(x => x.name === n) ? '' : '(まだないので付けない)')).join('、')}` : '';
+    const items = [...p.achievements.map(a => `実績「${h(a.name)}」${E.findAch(S.data, a.id) ? '(今あるものを上書き)' : ''}${reqNote(a)}`), ...p.challenges.map(c => `挑戦権「${h(c.name)}」${E.findCh(S.data, c.id) ? '(今あるものを上書き)' : ''}`),
       ...p.parts.map(x => `部品「${h(x.name)}」`)];
     prev = `<div class="card"><h3>${h(p.title || '取り込む中身')}</h3>${medals ? `<div class="shelf" style="padding:6px 0">${medals}</div>` : ''}<div class="note">${items.join('<br>')}</div>
       <div class="acts"><button class="btn gilt" data-act="import-do">取り込む</button><button class="btn line" data-act="import-cancel">やめる</button></div></div>`;
@@ -860,7 +883,8 @@ function achMedal(a, mode, size){
 const medalRatio = a => findArt(a.art) ? 1 : 1.2;
 
 /* ===================== 樹形図 ===================== */
-const TREE = { COL: 104, ROW: 124, PAD: 44 };
+const TREE = { COL: 136, ROW: 152, TOP: 86, PADX: 20, GAP: 16 };
+// 分野ごとの欄(レーン)に分け、必要実績の深さで段に並べる
 function treeLayout(d, field, t){
   const inF = x => field === 'all' || (x.fields || []).includes(field);
   const achs = new Map(d.achievements.map(a => [a.id, a]));
@@ -882,42 +906,71 @@ function treeLayout(d, field, t){
   chs.forEach(c => { const reqs = c.requires.filter(r => set.has(r)); nodes.push({ key: 'c:' + c.id, type: 'c', id: c.id, obj: c, depth: reqs.length ? 1 + Math.max(...reqs.map(r => depth(r))) : 0, outside: false }); });
   const edges = [];
   nodes.forEach(n => (n.obj.requires || []).forEach(r => { if(set.has(r)) edges.push({ from: 'a:' + r, to: n.key, on: E.held(d, r, t) }); }));
-  // 段ごとに並べ、親の位置の平均で順番を決める
+
+  // 欄:すべての図では分野ごと(最初の分野)、分野の図では1つ
+  const order = new Map(S.ministries.map((m, i) => [m.tag, i]));
+  nodes.forEach(n => n.lane = field !== 'all' ? field : ((n.obj.fields || [])[0] || ''));
+  const laneKeys = [...new Set(nodes.map(n => n.lane))].sort((a, b) => (a === '') - (b === '') || (order.get(a) ?? 99) - (order.get(b) ?? 99) || a.localeCompare(b));
   const maxD = nodes.reduce((m, n) => Math.max(m, n.depth), 0);
-  const rows = Array.from({ length: maxD + 1 }, (_, i) => nodes.filter(n => n.depth === i));
-  const pos = new Map();
-  rows.forEach((row, i) => {
-    if(i === 0) row.sort((a, b) => (a.obj.fields[0] || '').localeCompare(b.obj.fields[0] || '') || a.obj.name.localeCompare(b.obj.name));
-    else row.forEach(n => { const ps = (n.obj.requires || []).map(r => pos.get('a:' + r)).filter(v => v !== undefined); n.bary = ps.length ? ps.reduce((s, v) => s + v, 0)/ps.length : 0; }), row.sort((a, b) => a.bary - b.bary || (a.type < b.type ? -1 : 1));
-    row.forEach((n, j) => pos.set(n.key, j - (row.length - 1)/2));
+  let x = TREE.PADX;
+  const lanes = laneKeys.map(k => {
+    const cols = Math.max(1, ...Array.from({ length: maxD + 1 }, (_, dd) => nodes.filter(n => n.lane === k && n.depth === dd).length));
+    const lane = { key: k, name: k ? fieldName(k) : '分野なし', x0: x, x1: x + cols*TREE.COL };
+    x = lane.x1 + TREE.GAP; return lane;
   });
-  const widest = Math.max(1, ...rows.map(r => r.length));
-  const W = Math.max(320, widest*TREE.COL + TREE.PAD*2), H = TREE.PAD + maxD*TREE.ROW + 74;
-  nodes.forEach(n => { n.x = W/2 + pos.get(n.key)*TREE.COL; n.y = TREE.PAD + n.depth*TREE.ROW; });
-  return { nodes, edges, W, H };
+  const pos = new Map();
+  for(let dd = 0; dd <= maxD; dd++){
+    lanes.forEach(L => {
+      const row = nodes.filter(n => n.lane === L.key && n.depth === dd);
+      row.forEach(n => { const ps = (n.obj.requires || []).map(r => pos.get('a:' + r)).filter(v => v !== undefined); n.bary = ps.length ? ps.reduce((s, v) => s + v, 0)/ps.length : (L.x0 + L.x1)/2; });
+      row.sort((a, b) => a.bary - b.bary || (a.type < b.type ? -1 : 1) || a.obj.name.localeCompare(b.obj.name));
+      const cols = (L.x1 - L.x0)/TREE.COL;
+      // 親の真下に近い列から順に詰める
+      const taken = new Set();
+      row.forEach(n => {
+        let best = 0, bd = Infinity;
+        for(let c = 0; c < cols; c++){ if(taken.has(c)) continue; const cx = L.x0 + (c + .5)*TREE.COL, dist = Math.abs(cx - n.bary); if(dist < bd - .01){ bd = dist; best = c; } }
+        taken.add(best); n.x = L.x0 + (best + .5)*TREE.COL; n.y = TREE.TOP + dd*TREE.ROW; pos.set(n.key, n.x);
+      });
+    });
+  }
+  const W = Math.max(320, x - TREE.GAP + TREE.PADX), H = TREE.TOP + maxD*TREE.ROW + 84;
+  return { nodes, edges, lanes, W, H };
 }
 function nodeState(n, t){
   return n.type === 'a' ? E.achStatus(S.data, n.obj, t) : E.challengeStatus(S.data, n.obj, t);
 }
 function treeSvg(L, t){
   const at = new Map(L.nodes.map(n => [n.key, n]));
-  const edges = L.edges.map(e => { const a = at.get(e.from), b = at.get(e.to); const y1 = a.y + 32, y2 = b.y - 34;
-    return `<path class="edge${e.on ? ' on' : ''}" d="M${a.x} ${y1}C${a.x} ${y1 + 40} ${b.x} ${y2 - 40} ${b.x} ${y2}"/>`; }).join('');
+  const lanes = L.lanes.map((ln, i) => `<g class="lane">${i ? `<line x1="${ln.x0 - TREE.GAP/2}" y1="8" x2="${ln.x0 - TREE.GAP/2}" y2="${L.H - 8}"/>` : ''}
+    <rect x="${ln.x0 + 6}" y="12" width="${ln.x1 - ln.x0 - 12}" height="30" rx="2"/><text x="${(ln.x0 + ln.x1)/2}" y="32">${h(ln.name)}</text></g>`).join('');
+  // 線:親の下から降り、子の段の少し上で横に渡り、子へ降りる
+  const paths = L.edges.map(e => { const a = at.get(e.from), b = at.get(e.to); const y1 = a.y + 58, y2 = b.y - 36, my = b.y - 56;
+    return { d: `M${a.x} ${y1}V${my}H${b.x}V${y2}`, on: e.on }; });
+  const edges = paths.map(p => `<path class="e-under" d="${p.d}"/>`).join('') + paths.filter(p => !p.on).map(p => `<path class="e-off" d="${p.d}"/>`).join('') + paths.filter(p => p.on).map(p => `<path class="e-on" d="${p.d}"/>`).join('');
   const nodes = L.nodes.map(n => {
     const st = nodeState(n, t), name = n.obj.name;
-    const label = h(name.length > 8 ? name.slice(0, 8) + '…' : name);
+    const label = h(name.length > 9 ? name.slice(0, 9) + '…' : name);
     const cls = `tn tn-${st.state}${n.outside ? ' tn-out' : ''}${S.treeSel === n.key ? ' tn-sel' : ''}`;
-    let body;
+    let icon;
     if(n.type === 'a'){
-      const mode = st.state !== 'got' ? 'shadow' : st.expired ? 'expired' : st.near ? 'near' : 'got';
-      const size = 40, hh = size*medalRatio(n.obj);
-      body = `<circle class="ring" r="31"/><g transform="translate(${-size/2} ${-hh/2})">${achMedal(n.obj, mode, size)}</g>`;
+      const mode = st.state === 'got' ? (st.expired ? 'expired' : st.near ? 'near' : 'got') : 'got';
+      const size = medalRatio(n.obj) > 1 ? 50 : 60, hh = size*medalRatio(n.obj);
+      icon = `<g transform="translate(${-size/2} ${-hh/2 - 2})">${achMedal(n.obj, mode, size)}</g>`;
     } else {
-      body = `<path class="door-n" d="M-22 28V-8A22 22 0 0 1 22 -8V28Z"/>` + (st.state === 'got' ? `<circle r="3" cx="12" cy="8" fill="#2b4a86"/>` : `<path d="M-4 6a4 4 0 1 1 8 0l-2 8h-4z" fill="#a9aebb"/>`);
+      icon = `<path d="M-19 24V-6A19 19 0 0 1 19 -6V24Z" fill="#5a3f24" stroke="#d9bf6a" stroke-width="3"/><path d="M-19 24V-6A19 19 0 0 1 19 -6V24" fill="none" stroke="#3a2814" stroke-width="1" transform="scale(.8)"/>` +
+        (st.state === 'got' ? `<circle r="2.6" cx="10" cy="6" fill="#f3e2a4"/>` : `<path d="M-3.5 4a3.5 3.5 0 1 1 7 0l-1.6 8h-3.8z" fill="#f3e2a4"/>`);
     }
-    return `<g class="${cls}" data-node="${h(n.key)}" tabindex="0" role="button" aria-label="${h(name)}" transform="translate(${n.x} ${n.y})"><title>${h(name)}</title>${body}<text y="50">${label}</text></g>`;
+    return `<g class="${cls}" data-node="${h(n.key)}" tabindex="0" role="button" aria-label="${h(name)}" transform="translate(${n.x} ${n.y})"><title>${h(name)}</title>
+      <rect class="hit" x="-62" y="-36" width="124" height="96" fill="transparent"/>
+      ${st.state === 'got' ? '<circle class="glow" r="38" fill="url(#t-glow)"/>' : ''}
+      <g class="ico"${st.state === 'locked' ? ' filter="url(#t-gray)"' : ''}>${icon}</g>
+      <rect class="plq" x="-60" y="34" width="120" height="22" rx="2"/><text y="49.5">${label}</text></g>`;
   }).join('');
-  return `<svg class="tree" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}">${edges}${nodes}</svg>`;
+  return `<svg class="tree" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}">
+    <defs><radialGradient id="t-glow"><stop offset="0" stop-color="#f7dc7c" stop-opacity=".6"/><stop offset="1" stop-color="#f7dc7c" stop-opacity="0"/></radialGradient>
+    <filter id="t-gray"><feColorMatrix type="saturate" values="0.08"/><feComponentTransfer><feFuncR type="linear" slope=".55"/><feFuncG type="linear" slope=".55"/><feFuncB type="linear" slope=".55"/></feComponentTransfer></filter></defs>
+    ${lanes}${edges}${nodes}</svg>`;
 }
 function treeDetail(n, t){
   const st = nodeState(n, t), o = n.obj, isA = n.type === 'a';
@@ -948,10 +1001,11 @@ function renderTree(){
   if(!d.achievements.length && !d.challenges.length) return `<h2>樹形図</h2><div class="empty">まだ実績がありません。設定で実績を足すと、ここに図ができます。</div>`;
   const L = treeLayout(d, S.field, t);
   const sel = L.nodes.find(n => n.key === S.treeSel);
-  return `<h2>樹形図</h2>${fieldChips('すべてを合わせた図')}
-    <div class="legend"><span><i style="border-color:var(--gilt)"></i>手に入れた</span><span><i style="border-color:var(--lapis)"></i>今目指せる</span><span><i style="border-color:#a9aebb;border-style:dashed"></i>鍵がかかっている</span></div>
+  const got = d.achievements.filter(a => E.achStatus(d, a, t).state === 'got' && inField(a)).length, all = d.achievements.filter(inField).length;
+  return `<div class="hoi"><div class="hoi-bar">${fieldChips('すべての分野')}<span class="hoi-count">紋章 ${got} / ${all}</span></div>
+    <div class="legend"><span><i class="lg-got"></i>手に入れた</span><span><i class="lg-open"></i>今目指せる</span><span><i class="lg-locked"></i>鍵がかかっている</span></div>
     ${L.nodes.length ? `<div class="tree-wrap">${treeSvg(L, t)}</div>` : '<div class="empty">この分野には、まだ実績も挑戦権もありません。</div>'}
-    ${sel ? treeDetail(sel, t) : '<p class="note">実績や挑戦権を押すと、達成条件・必要実績・今の状態が出ます。</p>'}`;
+    ${sel ? treeDetail(sel, t) : '<p class="hoi-hint">紋章や扉を押すと、達成条件・必要実績・今の状態が出ます。</p>'}</div>`;
 }
 
 /* ===================== 工房 ===================== */

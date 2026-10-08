@@ -190,10 +190,15 @@ const DATA = 'roadmap/apps/eiten/data.json';
 
     const L = App.treeLayout(App.S.data, 'all', T), dep = k => L.nodes.find(n => n.key === k).depth;
     ok(dep('a:a1') === 0 && dep('a:a2') === 1 && dep('a:m2') === 2 && dep('c:c1') === 2, '必要実績の深さで段が決まる');
+
+    // 欄(レーン)
+    ok(L.lanes.map(x => x.name).join() === '英語省,数学省' && L.nodes.find(n => n.key === 'a:m2').lane === 'math', '分野ごとの欄に分かれる');
+    ok(L.nodes.filter(n => n.lane === 'eng').every(n => n.x < L.lanes[1].x0), '欄の中に収まる');
     const Lm = App.treeLayout(App.S.data, 'math', T);
     ok(Lm.nodes.find(n => n.key === 'a:a2').outside && !Lm.nodes.find(n => n.key === 'c:c1'), '分野ごとの図ではほかの分野の前提を薄く出す');
     click(w, '[data-tab="tree"]');
-    ok(doc.querySelectorAll('.tree [data-node]').length === 5, '図に5つ');
+    ok(doc.querySelectorAll('.tree [data-node]').length === 5 && doc.querySelectorAll('.tree .lane').length === 2 && doc.querySelector('.tree .e-on'), '図に5つ・欄の見出し・達成した線');
+    ok(doc.querySelector('[data-node="a:m2"] .ico').getAttribute('filter') === 'url(#t-gray)', '鍵のかかったものは灰色');
     click(w, '[data-node="c:c1"]');
     ok(/持っている:英検準1級/.test(doc.getElementById('tree-detail').textContent) && /鍵がかかっている/.test(doc.getElementById('tree-detail').textContent), '押すと説明が出る');
     click(w, '[data-node="a:a2"]');
@@ -259,6 +264,13 @@ const DATA = 'roadmap/apps/eiten/data.json';
     const j = repo.json(DATA);
     ok(j.arts.find(a => a.id === 'art-hon') && j.achievements.find(a => a.id === 'a-hon').art === 'art-hon', '取り込むとデータに入る(ファイルの入れ替えは要らない)');
     ok(!doc.querySelector('.importbox .card'), '取り込んだら見本は閉じる');
+    const pack2 = { eiten: 1, title: '次', achievements: [{ id: 'a-next', name: '次の段', condition: 'x', requiresNames: ['千里の道も一歩から', 'まだない実績'] }] };
+    doc.getElementById('imp-text').value = JSON.stringify(pack2);
+    click(w, '[data-act="import-read"]');
+    ok(/まだないので付けない/.test(doc.querySelector('.importbox .card').textContent), '見つからない必要実績は見本で知らせる');
+    click(w, '[data-act="import-do"]'); await tick(); await tick();
+    const nx = App.S.data.achievements.find(a => a.id === 'a-next');
+    ok(nx && nx.requires.length === 1 && nx.requires[0] === App.S.data.achievements.find(a => a.name === '千里の道も一歩から').id, '必要実績を名前で結べる');
     doc.getElementById('imp-text').value = 'こわれた{"eiten":1, ';
     click(w, '[data-act="import-read"]');
     ok(doc.getElementById('toast').classList.contains('err'), 'こわれた文字は知らせる');
