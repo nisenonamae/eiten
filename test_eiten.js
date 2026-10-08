@@ -323,6 +323,57 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     w.close();
   }
 
+  // ===== 内容の欄と届いた案(r3) =====
+  {
+    console.log('内容の欄と届いた案');
+    const repo = makeRepo();
+    repo.put('roadmap/gov/ministries.json', [{ tag: 'eng', name: '英語省', order: 1 }]);
+    const dom = await boot(repo);
+    const w = dom.window, doc = w.document, App = w.App, { A, E } = App;
+    ok(A.builtin('b-michi') && A.builtin('b-michi').kind === '紋', '道の紋がある');
+    const art = A.builtinArt('ba-senri');
+    ok(art && art.layers.every(L => A.builtin(L.part)) && !/NaN/.test(A.artSvg(art, id => A.builtin(id))), '「千里の道も一歩から」の勲章が描ける');
+
+    click(w, '[data-tab="review"]');
+    const card = doc.querySelector('.card.delivery');
+    ok(card && /千里の道も一歩から/.test(card.textContent) && /定着に達するタスクが10個以上である/.test(card.textContent), '届いた案が審査会議に出る');
+    click(w, '[data-act="take-delivery"][data-id="dl-senri"]');
+    ok(doc.getElementById('rf-name').value === '千里の道も一歩から' && doc.getElementById('rf-art').value === 'ba-senri' && doc.getElementById('rf-desc').value.length > 10, '案の中身が欄に入る');
+    doc.querySelector('input[name="rf-field"][value="eng"]').checked = true;
+    doc.getElementById('rf-desc').value = '自分で書いた内容';
+    await App.Actions.ruleSubmit(); await tick();
+    const rv = App.S.data.reviews[0];
+    ok(rv.delivery === 'dl-senri' && rv.content.def.description === '自分で書いた内容' && rv.content.def.fields[0] === 'eng', '直してから申し出られる');
+    ok(!doc.querySelector('.card.delivery'), '申し出た案は届いた案から消える');
+    ok(/内容/.test(doc.querySelector('.card.pending').textContent) && /自分で書いた内容/.test(doc.querySelector('.card.pending').textContent), '審査で内容が見える');
+    doc.getElementById('why-' + rv.id).value = 'よい';
+    await App.Actions.decide(rv.id, true); await tick();
+    const a = App.S.data.achievements[0];
+    ok(a.name === '千里の道も一歩から' && a.condition === '定着に達するタスクが10個以上である' && a.art === 'ba-senri' && a.description === '自分で書いた内容', '実績になる');
+    click(w, '[data-tab="settings"]');
+    ok(/自分で書いた内容/.test(doc.querySelector('main').textContent) && /千里の道も一歩から/.test(doc.querySelector('#def-' + a.id + ' dd:last-child').textContent), '設定に内容と勲章が出る');
+    click(w, '[data-tab="tree"]'); click(w, `[data-node="a:${a.id}"]`);
+    ok(/自分で書いた内容/.test(doc.getElementById('tree-detail').textContent), '樹形図にも内容が出る');
+    // 普通に実績を足すときも内容を書ける
+    click(w, '[data-tab="review"]');
+    click(w, '[data-act="propose-add"][data-type="achievement"]');
+    doc.getElementById('rf-name').value = 'X'; doc.getElementById('rf-cond').value = 'Y'; doc.getElementById('rf-desc').value = 'Zの内容';
+    await App.Actions.ruleSubmit(); await tick();
+    ok(App.S.data.reviews[1].content.def.description === 'Zの内容' && !App.S.data.reviews[1].delivery, '実績を足すときに内容を書ける');
+    // 工房で届いた勲章を写して直せる
+    click(w, '[data-tab="studio"]'); App.Studio.mode('art'); App.Studio.pickArt('ba-senri');
+    ok(App.S.st.art.id === null && App.S.st.art.layers.length === 6, '届いた勲章を写して直せる');
+    // 演出に内容が出る
+    doc.getElementById && click(w, '[data-tab="review"]');
+    doc.getElementById('ap-ach').value = a.id; doc.getElementById('ap-evi').value = '定着10個の一覧';
+    await App.Actions.apply(); await tick();
+    const ap = App.S.data.reviews.find(r => r.kind === 'apply');
+    doc.getElementById('why-' + ap.id).value = '確認';
+    await App.Actions.decide(ap.id, true); await tick();
+    ok(/自分で書いた内容/.test(doc.getElementById('fanfare').textContent), '認定の演出に内容が出る');
+    w.close();
+  }
+
   {
     const repo = makeRepo();
     const dom = await boot(repo, false);

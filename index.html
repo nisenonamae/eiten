@@ -163,12 +163,16 @@ textarea{min-height:70px;resize:vertical}
 .sw{width:28px;height:28px;border-radius:4px;border:1px solid var(--line);cursor:pointer;font-size:10px;padding:0}
 .sw[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
 
+/* 届いた案 */
+.card.delivery{display:grid;grid-template-columns:auto 1fr;gap:14px;border-left:4px solid var(--lapis)}
+@media (max-width:600px){.card.delivery{grid-template-columns:1fr}.dv-art .medal{margin:0}}
 /* 認定の演出 */
 #fanfare{position:fixed;inset:0;z-index:30;background:rgba(18,20,30,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;overflow:hidden;cursor:pointer;text-align:center;padding:20px}
 #fanfare .rays{position:absolute;left:50%;top:50%;width:140vmax;height:140vmax;margin:-70vmax 0 0 -70vmax;opacity:.32;animation:rays 14s linear infinite,raysin 1.1s ease-out both}
 #fanfare .big{position:relative;animation:rise 1s cubic-bezier(.2,1.5,.4,1) both;filter:drop-shadow(0 6px 24px rgba(0,0,0,.5))}
 #fanfare h2{position:relative;font-family:var(--mincho);font-size:30px;letter-spacing:.08em;margin:16px 0 4px;animation:fade .6s .5s both}
 #fanfare p{position:relative;margin:0;animation:fade .6s .7s both}
+#fanfare .desc{max-width:34em;font-size:14px;opacity:.85;margin-top:10px;line-height:1.8}
 #fanfare .close{font-size:12px;opacity:.6;margin-top:22px}
 #fanfare .cf{position:absolute;top:-5vh;width:7px;height:13px;border-radius:1px;animation-name:fall;animation-timing-function:linear;animation-fill-mode:forwards}
 @keyframes rays{to{transform:rotate(360deg)}}
@@ -219,7 +223,7 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r2';
+const VERSION = '2026-10-09 r3';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
@@ -312,6 +316,7 @@ const E = (() => {
       name: String(raw.name || '').trim(),
       fields: [...new Set(raw.fields || [])],
       condition: String(raw.condition || '').trim(),
+      description: String(raw.description || '').trim(),
       requires: [...new Set(raw.requires || [])],
       period: cleanPeriod(raw.period),
       art: raw.art || null,
@@ -343,7 +348,7 @@ const E = (() => {
     def.requires.forEach(r => { if(!findAch(d, r)) errs.push('必要実績に、ない実績が入っています'); });
     if(type === 'challenge' && def.requires.length === 0) errs.push('挑戦権には必要実績が1つ以上いります');
     if(type === 'achievement' && id && def.requires.includes(id)) errs.push('自分自身を必要実績にはできません');
-    if(type === 'achievement' && def.art && !d.arts.some(a => a.id === def.art)) errs.push('勲章が見つかりません');
+    if(type === 'achievement' && def.art && !d.arts.some(a => a.id === def.art) && !(typeof A !== 'undefined' && A.builtinArt(def.art))) errs.push('勲章が見つかりません');
     if(def.period && def.period.from && def.period.to && def.period.from > def.period.to) errs.push('期間の始まりが終わりより後です');
     ['renewDays','uses','cooldownDays','validDays'].forEach(k => { if(Number.isNaN(def[k])) errs.push('日数・回数は1以上の数で書いてください'); });
     if(type === 'achievement'){
@@ -353,7 +358,7 @@ const E = (() => {
     return [...new Set(errs)];
   }
 
-  function proposeRule(d, { op, type, id, def: raw, note, today }){
+  function proposeRule(d, { op, type, id, def: raw, note, today, delivery }){
     const def = cleanDef(type, raw);
     let before = null;
     if(op === 'edit'){
@@ -365,6 +370,7 @@ const E = (() => {
     if(errs.length) throw new Error(errs.join('/'));
     const r = { id: newId('r-'), day: today, kind: 'rule', target: op === 'edit' ? id : null,
       content: { op, type, id: op === 'edit' ? id : null, def, before }, note: String(note || '').trim(), status: 'pending' };
+    if(delivery) r.delivery = delivery;
     d.reviews.push(r);
     return r;
   }
@@ -555,6 +561,10 @@ const A = (() => {
     ['b-haguruma','歯車','紋',[Pa(gear(10,30,24),'m3'), C(10,'#000',CUT)]],
     ['b-ie','家','紋',[Pa([[50,22],[78,46],[71,46],[71,76],[29,76],[29,46],[22,46]],'m3'), R(50,67,10,18,'#000',CUT)]],
     ['b-hoshimon','星','紋',[St(5,24,10,'m3')]],
+    ['b-michi','道','紋',[C(5.5,'m1',{ x:28, y:31 }), Pa([[12,58],[28,42],[36,48],[52,25],[64,41],[72,35],[88,58]],'m1'), Pa([[52,25],[57,32],[53,31],[50,35],[47,30]],'#ffffff',{ alpha:.7 }), Ln([[10,58],[90,58]],'m3',1.2),
+      Pa([[30,88],[42,78],[50,69],[47,62],[50.5,58],[52,58],[53,63],[58,71],[56,80],[70,88]],'m3',{ smooth:true }),
+      Ln([[50,86],[49,78],[53,69],[51,61]],'m1',1.2,{ dash:'2.4 2.2' }),
+      El(45,82.5,2.5,4.1,'m1',{ rot:-12 }), C(1,'m1',{ x:43.3, y:77 }), C(.9,'m1',{ x:45.4, y:76.4 }), C(.8,'m1',{ x:47.4, y:76.9 })]],
     ['b-oukan','王冠','紋',[Pa([[24,70],[22,36],[37,52],[50,28],[63,52],[78,36],[76,70]],'m3'), R(50,74,52,7,'m3',{ rx:2 }), C(3.5,'m1',{ x:22, y:34 }), C(3.5,'m1',{ x:50, y:26 }), C(3.5,'m1',{ x:78, y:34 })]],
     ['b-hikari','光の筋','飾り', Array.from({ length: 16 }, (_, i) => { const a = i*Math.PI/8, d = .075; return Pa([[50,50],[50+50*Math.cos(a-d),50+50*Math.sin(a-d)],[50+50*Math.cos(a+d),50+50*Math.sin(a+d)]],'m1',{ alpha:.55 }); })],
     ['b-gekkeiju','月桂樹','飾り',[...around(7,41,100,220), ...around(7,41,80,-40)].map(([x, y, a]) => El(x, y, 3.6, 8.5, 'm2', { rot: a }))],
@@ -567,8 +577,19 @@ const A = (() => {
   ];
   const BUILTIN = B.map(([id, name, kind, shapes]) => ({ id, name, kind, builtin: true, shapes: shapes.map(s => Object.assign({ s: 1, rot: 0, sw: 0, stroke: 'none' }, s)) }));
   const builtin = id => BUILTIN.find(p => p.id === id);
+  // Claudeが作って届けた勲章(工房では写して直せる)
+  const BUILTIN_ARTS = [
+    { id: 'ba-senri', name: '千里の道も一歩から', builtin: true, text: { str: '', y: 58, size: 14, fill: '#3a2a0c' }, layers: [
+      { part: 'b-hikari', x: 50, y: 50, s: 1, rot: 0, metal: 'gold' },
+      { part: 'b-gekkeiju', x: 50, y: 51, s: .97, rot: 0, metal: 'gold' },
+      { part: 'b-enshou', x: 50, y: 50, s: .8, rot: 0, metal: '#2b4a86' },
+      { part: 'b-fuchi4', x: 50, y: 50, s: .7, rot: 0, metal: 'gold' },
+      { part: 'b-michi', x: 50, y: 51, s: .6, rot: 0, metal: 'gold' },
+      { part: 'b-kohoshi', x: 50, y: 50, s: .96, rot: 0, metal: 'gold' } ] },
+  ];
+  const builtinArt = id => BUILTIN_ARTS.find(a => a.id === id);
 
-  return { METALS, METAL_NAMES, PALETTE, SHAPE_NAMES, KINDS, BUILTIN, builtin, metal, col, pathD, shapeSvg, partInner, partSvg, artInner, artSvg };
+  return { METALS, METAL_NAMES, PALETTE, SHAPE_NAMES, KINDS, BUILTIN, builtin, BUILTIN_ARTS, builtinArt, metal, col, pathD, shapeSvg, partInner, partSvg, artInner, artSvg };
 })();
 
 /* ===================== GitHub との読み書き ===================== */
@@ -722,6 +743,7 @@ function renderSettings(){
     <div><h3>${h(a.name)}</h3><dl>
       <dt>分野</dt><dd>${tags(a.fields)}</dd>
       <dt>達成条件</dt><dd>${h(a.condition)}</dd>
+      ${a.description ? `<dt>内容</dt><dd>${h(a.description)}</dd>` : ''}
       <dt>必要実績</dt><dd>${reqList(a.requires, t)}</dd>
       <dt>更新制</dt><dd>${a.renewDays ? `${a.renewDays}日ごとに再審査` : 'なし'}</dd>
       <dt>申請できる期間</dt><dd>${h(fmtPeriod(a.period))}</dd>
@@ -734,6 +756,7 @@ function renderSettings(){
     <div><h3>${h(c.name)}</h3><dl>
       <dt>分野</dt><dd>${tags(c.fields)}</dd>
       <dt>達成条件</dt><dd>${h(c.condition)}</dd>
+      ${c.description ? `<dt>内容</dt><dd>${h(c.description)}</dd>` : ''}
       <dt>必要実績</dt><dd>${reqList(c.requires, t)}</dd>
       <dt>回数</dt><dd>${c.uses ? `${c.uses}回まで` : '無制限'}</dd>
       <dt>再挑戦までの間</dt><dd>${c.cooldownDays ? `${c.cooldownDays}日` : 'なし'}</dd>
@@ -752,13 +775,14 @@ function renderSettings(){
 
 /* ---- 審査会議 ---- */
 const DEF_ROWS = {
-  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['renewDays','更新制'],['period','申請できる期間'],['art','勲章']],
-  challenge: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['uses','回数'],['cooldownDays','再挑戦までの間'],['validDays','有効期限'],['period','得られる期間']],
+  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['renewDays','更新制'],['period','申請できる期間'],['art','勲章']],
+  challenge: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['uses','回数'],['cooldownDays','再挑戦までの間'],['validDays','有効期限'],['period','得られる期間']],
 };
 function fmtVal(k, v){
   if(k === 'fields') return (v || []).map(fieldName).join('、') || 'なし';
   if(k === 'requires') return (v || []).map(achName).join('、') || 'なし';
   if(k === 'period') return fmtPeriod(v);
+  if(k === 'description') return v || 'なし';
   if(k === 'art'){ const a = findArt(v); return v ? (a ? a.name : '(なくなった勲章)') : '仮の勲章'; }
   if(k === 'renewDays') return v ? `${v}日ごとに再審査` : 'なし';
   if(k === 'uses') return v ? `${v}回まで` : '無制限';
@@ -800,7 +824,15 @@ function renderReview(){
     <div>理由:${h(r.reason)}</div><div class="note">${fmtDay(r.day)}に出され、${fmtDay(r.decidedDay)}に決まった</div></div></details>`).join('')
     : '<div class="empty">まだ記録はありません。</div>';
 
-  return `<h2>実績を申請する</h2>
+  const dels = openDeliveries();
+  const delHtml = dels.length ? `<h2>届いた案</h2><p class="note">作ってもらった実績の案です。中身を見て、よければ審査会議に申し出てください(申し出る前に直せます)。</p>` + dels.map(x => {
+    const fake = Object.assign({ id: '' }, x.def);
+    return `<div class="card delivery"><div class="dv-art">${achMedal(fake, 'got', 96)}</div><div><h3>${h(x.def.name)}</h3>
+      <div class="note" style="margin:0">達成条件</div><div>${h(x.def.condition)}</div>
+      ${x.def.description ? `<div class="note" style="margin:6px 0 0">内容</div><div>${h(x.def.description)}</div>` : ''}
+      <div class="acts"><button class="btn small" data-act="take-delivery" data-id="${x.id}">この案で申し出る</button></div></div></div>`;
+  }).join('') : '';
+  return `${delHtml}<h2>実績を申請する</h2>
     ${d.achievements.length ? `<div class="card form">
       <label class="f">実績<select id="ap-ach"><option value="">選んでください</option>${opts}</select></label>
       <label class="f">証拠(何をしたか、どこで確かめられるか)<textarea id="ap-evi"></textarea></label>
@@ -828,8 +860,9 @@ function ruleForm(){
     <label class="f">名前<input type="text" id="rf-name" value="${h(d.name)}"></label>
     <div class="f note">分野<div class="checks">${fieldsHtml}</div></div>
     <label class="f">達成条件<textarea id="rf-cond">${h(d.condition)}</textarea></label>
+    <label class="f">${isA ? '実績' : '挑戦権'}の内容(どんなものか・込めた意味。任意)<textarea id="rf-desc">${h(d.description || '')}</textarea></label>
     <div class="f note">必要実績${isA ? '' : '(この組み合わせを持つと得られる)'}<div class="checks">${reqHtml}</div></div>
-    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに再審査)', d.renewDays, '空なら更新なし')}<label class="f">勲章<select id="rf-art"><option value="">仮の勲章</option>${S.data.arts.map(a => `<option value="${h(a.id)}" ${d.art === a.id ? 'selected' : ''}>${h(a.name)}</option>`).join('')}</select></label></div>`
+    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに再審査)', d.renewDays, '空なら更新なし')}<label class="f">勲章<select id="rf-art"><option value="">仮の勲章</option>${[...A.BUILTIN_ARTS, ...S.data.arts].map(a => `<option value="${h(a.id)}" ${d.art === a.id ? 'selected' : ''}>${h(a.name)}${a.builtin ? '(届いた勲章)' : ''}</option>`).join('')}</select></label></div>`
           : `<div class="two">${num('rf-uses', '回数', d.uses, '空なら無制限')}${num('rf-cool', '再挑戦までの日数', d.cooldownDays, '空ならなし')}</div>
              <div class="two">${num('rf-valid', '有効期限(得てから何日)', d.validDays, '空ならなし')}<span></span></div>`}
     <div class="two"><label class="f">${isA ? '申請できる' : '得られる'}期間の始まり<input type="date" id="rf-from" value="${h(p.from || '')}"></label>
@@ -841,16 +874,25 @@ function ruleForm(){
 function readRuleForm(){
   const v = id => ($('#' + id) || {}).value || '';
   const checked = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value);
-  const raw = { name: v('rf-name'), fields: checked('rf-field'), condition: v('rf-cond'), requires: checked('rf-req'),
+  const raw = { name: v('rf-name'), fields: checked('rf-field'), condition: v('rf-cond'), description: v('rf-desc'), requires: checked('rf-req'),
     period: { from: v('rf-from'), to: v('rf-to') }, art: S.ruleDraft.type === 'achievement' ? (v('rf-art') || null) : null };
   if(S.ruleDraft.type === 'achievement') raw.renewDays = v('rf-renew');
   else { raw.uses = v('rf-uses'); raw.cooldownDays = v('rf-cool'); raw.validDays = v('rf-valid'); }
   return { raw, note: v('rf-note') };
 }
 
+/* ===================== 届いた案(Claudeに作ってもらった実績) ===================== */
+const DELIVERIES = [
+  { id: 'dl-senri', type: 'achievement', note: 'Claudeに作ってもらった案',
+    def: { name: '千里の道も一歩から', fields: [], condition: '定着に達するタスクが10個以上である',
+      description: '一つひとつのタスクを、毎日の当たり前になるまで育てた証。最初の一歩を重ね続けて、定着したタスクが10個に届いたことをたたえる。',
+      requires: [], period: null, art: 'ba-senri', renewDays: null } },
+];
+const openDeliveries = () => DELIVERIES.filter(x => !S.data.reviews.some(r => r.delivery === x.id));
+
 /* ===================== 勲章の表示 ===================== */
 const getPart = id => A.builtin(id) || S.data.parts.find(p => p.id === id);
-const findArt = id => id ? S.data.arts.find(a => a.id === id) : null;
+const findArt = id => id ? (A.builtinArt(id) || S.data.arts.find(a => a.id === id)) : null;
 function achMedal(a, mode, size){
   const art = findArt(a.art);
   return art ? A.artSvg(art, getPart, { mode, size }) : medalSvg(a, mode, size);
@@ -937,6 +979,7 @@ function treeDetail(n, t){
     <h3>${isA ? '実績' : '挑戦権'}:${h(o.name)}</h3>
     <div>${tags(o.fields)}${n.outside ? '<span class="note">(ほかの分野の実績)</span>' : ''}</div>
     <dl><dt>達成条件</dt><dd>${h(o.condition)}</dd>
+    ${o.description ? `<dt>内容</dt><dd>${h(o.description)}</dd>` : ''}
     <dt>必要実績</dt><dd><ul class="reqs">${reqs}</ul></dd>
     <dt>現在の状態</dt><dd><b>${label}</b>${now.length ? '<br>' + now.map(h).join('<br>') : ''}</dd></dl>
     <div class="acts"><button class="btn line small" data-act="goto-def" data-id="${h(o.id)}">設定で見る</button>
@@ -1026,7 +1069,7 @@ function partPanel(){
 }
 function artPanel(){
   const a = ST.art, L = curLayer(), t = a.text || {};
-  const arts = S.data.arts.map(x => `<button class="thumb" data-act="st-pick-art" data-id="${h(x.id)}" aria-pressed="${a.id === x.id}" title="${h(x.name)}">${A.artSvg(x, getPart, { size: 48 })}${h(x.name)}</button>`).join('');
+  const arts = [...A.BUILTIN_ARTS, ...S.data.arts].map(x => `<button class="thumb" data-act="st-pick-art" data-id="${h(x.id)}" aria-pressed="${a.id === x.id}" title="${h(x.name)}">${A.artSvg(x, getPart, { size: 48 })}${h(x.name)}${x.builtin ? '' : '★'}</button>`).join('');
   const list = a.layers.map((x, i) => { const p = getPart(x.part); return `<li class="${i === ST.lsel ? 'sel' : ''}"><span class="nm" data-act="st-lsel" data-i="${i}">${i+1}. ${h(p ? p.name : '(なくなった部品)')}・${h(A.METAL_NAMES[x.metal] || '好きな色')}</span>
     <button class="ib" data-act="st-lup" data-i="${i}" ${i === a.layers.length-1 ? 'disabled' : ''}>上へ</button><button class="ib" data-act="st-ldown" data-i="${i}" ${i === 0 ? 'disabled' : ''}>下へ</button>
     <button class="ib" data-act="st-ldup" data-i="${i}">写す</button><button class="ib" data-act="st-ldel" data-i="${i}">消す</button></li>`; }).join('');
@@ -1036,7 +1079,7 @@ function artPanel(){
     <div class="note">地金の色</div><div class="swatches">${Object.entries(A.METAL_NAMES).map(([k, n]) => `<button class="sw" style="width:auto;padding:0 8px;background:${A.METALS[k][1]}" data-act="st-metal" data-v="${k}" aria-pressed="${L.metal === k}">${n}</button>`).join('')}
     <label class="note" style="display:flex;align-items:center;gap:4px">好きな色<input type="color" data-o="layer" data-f="metal" value="${custom}"></label></div>`
     : '<p class="note">部品を選ぶと、位置・大きさ・向き・地金の色を決められます。絵の上でつまんで動かせます。</p>';
-  return `<section><h3>勲章の一覧</h3>${arts ? `<div class="thumbs">${arts}</div>` : '<p class="note">まだ勲章はありません。</p>'}
+  return `<section><h3>勲章の一覧</h3><p class="note" style="margin:0 0 4px">★は自分で作った勲章。届いた勲章を直すと、新しい勲章になります。</p>${arts ? `<div class="thumbs">${arts}</div>` : '<p class="note">まだ勲章はありません。</p>'}
       <div class="acts"><button class="btn line small" data-act="st-new-art">新しい勲章</button></div></section>
     <section class="form"><h3>${a.id ? '勲章を直す' : '新しい勲章'}${ST.dirty ? '(しまっていない変更あり)' : ''}</h3>
       <label class="f">名前<input type="text" data-o="art" data-f="name" value="${h(a.name)}" maxlength="20"></label></section>
@@ -1180,7 +1223,7 @@ const Studio = {
     if(ok){ ST.part = blankPart(); ST.sel = -1; ST.dirty = false; render(); }
   },
   newArt(){ if(!okToLeave()) return; ST.art = blankArt(); ST.lsel = -1; render(); },
-  pickArt(id){ if(!okToLeave()) return; const a = findArt(id); if(!a) return; ST.art = E.clone(a); ST.art.text = ST.art.text || { str: '', y: 58, size: 14, fill: '#3a2a0c' }; ST.lsel = -1; render(); },
+  pickArt(id){ if(!okToLeave()) return; const a = findArt(id); if(!a) return; ST.art = E.clone(a); if(a.builtin){ delete ST.art.builtin; ST.art.id = null; ST.art.name = a.name + '(直し)'; } ST.art.text = ST.art.text || { str: '', y: 58, size: 14, fill: '#3a2a0c' }; ST.lsel = -1; render(); },
   addLayer(id){ const p = getPart(id); if(!p) return; const L = { part: id, x: 50, y: 50, s: p.kind === '紋' ? .55 : 1, rot: 0, metal: 'gold' }; ST.art.layers.push(L); ST.lsel = ST.art.layers.length - 1; ST.dirty = true; render(); },
   lsel(i){ ST.lsel = i; renderPanel(); drawCanvas(); },
   metal(v){ const L = curLayer(); if(!L) return; L.metal = v; ST.dirty = true; renderPanel(); drawCanvas(); },
@@ -1243,7 +1286,7 @@ function celebrate(achId, renewal){
   let cf = '';
   for(let i = 0; i < 70; i++) cf += `<i class="cf" style="left:${(Math.random()*100).toFixed(1)}%;background:${colors[i % colors.length]};animation-duration:${(2.6 + Math.random()*2.6).toFixed(2)}s;animation-delay:${(Math.random()*.9).toFixed(2)}s;rotate:${Math.floor(Math.random()*360)}deg"></i>`;
   el.innerHTML = `<svg class="rays" viewBox="0 0 100 100" aria-hidden="true">${A.partInner(A.builtin('b-hikari'), A.metal('gold'))}</svg>${cf}
-    <div class="big">${achMedal(a, 'got', 200)}</div><h2>${h(a.name)}</h2><p>${renewal ? '更新しました。勲章がまた輝きます' : '認定されました'}</p><p class="close">押すと閉じます</p>`;
+    <div class="big">${achMedal(a, 'got', 200)}</div><h2>${h(a.name)}</h2><p>${renewal ? '更新しました。勲章がまた輝きます' : '認定されました'}</p>${a.description ? `<p class="desc">${h(a.description)}</p>` : ''}<p class="close">押すと閉じます</p>`;
   el.addEventListener('click', () => el.remove());
   document.body.appendChild(el);
 }
@@ -1284,9 +1327,15 @@ const Actions = {
     const { raw, note } = readRuleForm();
     const r = S.ruleDraft, t = today();
     r.def = Object.assign({}, r.def, raw); r.note = note; // 失敗しても書いたものを残す
-    const res = await commit(d => E.proposeRule(d, { op: r.op, type: r.type, id: r.id, def: raw, note, today: t }), 'ルールの変更を申し出た', () => '審査会議に出しました');
+    const res = await commit(d => E.proposeRule(d, { op: r.op, type: r.type, id: r.id, def: raw, note, today: t, delivery: r.delivery }), 'ルールの変更を申し出た', () => '審査会議に出しました');
     if(res){ S.ruleDraft = null; render(); }
     return res;
+  },
+  takeDelivery(id){
+    const x = DELIVERIES.find(v => v.id === id); if(!x) return;
+    S.ruleDraft = { op: 'add', type: x.type, id: null, def: E.clone(x.def), note: x.note, delivery: x.id };
+    S.tab = 'review'; render();
+    const f = $('#rule-form'); if(f && f.scrollIntoView) f.scrollIntoView({ block: 'start' });
   },
   startRule(op, type, id){
     const cur = id ? (type === 'achievement' ? E.findAch(S.data, id) : E.findCh(S.data, id)) : null;
@@ -1310,6 +1359,7 @@ document.addEventListener('click', e => {
   else if(act === 'rule-cancel'){ S.ruleDraft = null; render(); }
   else if(act === 'rule-submit') Actions.ruleSubmit();
   else if(act === 'goto-def'){ S.tab = 'settings'; S.field = 'all'; render(); const el = document.getElementById('def-' + b.dataset.id); if(el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
+  else if(act === 'take-delivery') Actions.takeDelivery(b.dataset.id);
   else if(act === 'goto-apply'){ S.tab = 'review'; S.applyPreset = b.dataset.id; render(); }
   else if(act.startsWith('st-')) studioClick(act, b);
 });
