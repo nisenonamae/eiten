@@ -163,6 +163,9 @@ textarea{min-height:70px;resize:vertical}
 .sw{width:28px;height:28px;border-radius:4px;border:1px solid var(--line);cursor:pointer;font-size:10px;padding:0}
 .sw[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
 
+/* 取り込み */
+.importbox summary{cursor:pointer}
+.importbox textarea{margin-top:4px;font-size:12px;min-height:80px}
 /* 届いた案 */
 .card.delivery{display:grid;grid-template-columns:auto 1fr;gap:14px;border-left:4px solid var(--lapis)}
 @media (max-width:600px){.card.delivery{grid-template-columns:1fr}.dv-art .medal{margin:0}}
@@ -223,7 +226,7 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r3';
+const VERSION = '2026-10-09 r4';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
@@ -283,29 +286,41 @@ const E = (() => {
     return { state: (miss.length === 0 && inPeriod(c.period, today)) ? 'open' : 'locked', missing: miss };
   }
 
-  function canApply(d, achId, today){
+  // 達成した(手で付ける)。更新制なら更新
+  function canGrant(d, achId, today){
     const a = findAch(d, achId);
     if(!a) return { ok: false, reason: 'その実績はありません' };
-    if(d.reviews.some(r => r.kind === 'apply' && r.target === achId && r.status === 'pending'))
-      return { ok: false, reason: '審査を待っている申請があります' };
     const g = grantFor(d, achId);
     if(g){
       if(!a.renewDays) return { ok: false, reason: 'もう手に入れています' };
       return { ok: true, renewal: true };
     }
-    if(!inPeriod(a.period, today)) return { ok: false, reason: '申請できる期間ではありません' };
+    if(!inPeriod(a.period, today)) return { ok: false, reason: '達成できる期間ではありません' };
     const miss = missing(d, a.requires, today);
     if(miss.length) return { ok: false, reason: '必要実績がそろっていません(' + miss.map(id => (findAch(d,id)||{}).name || id).join('、') + ')' };
     return { ok: true, renewal: false };
   }
-
-  function submitApplication(d, { achId, evidence, today }){
-    const c = canApply(d, achId, today);
+  function grant(d, achId, { today, note }){
+    const c = canGrant(d, achId, today);
     if(!c.ok) throw new Error(c.reason);
-    if(!evidence || !evidence.trim()) throw new Error('証拠を書いてください');
-    const r = { id: newId('r-'), day: today, kind: 'apply', target: achId, renewal: c.renewal, evidence: evidence.trim(), status: 'pending' };
-    d.reviews.push(r);
-    return r;
+    const a = findAch(d, achId), expires = a.renewDays ? addDays(today, a.renewDays) : null;
+    if(c.renewal){ const g = grantFor(d, achId); g.renewals.push({ day: today, note: note || '' }); g.expires = expires; }
+    else d.grants.push({ achId, day: today, note: note || '', expires, renewals: [] });
+    return { achId, renewal: c.renewal, newRights: checkRights(d, today) };
+  }
+  // まちがえて付けたときの取り消し。それで得たばかりのまだ使っていない挑戦権も戻す
+  function ungrant(d, achId){
+    const g = grantFor(d, achId);
+    if(!g) throw new Error('まだ手に入れていません');
+    d.grants = d.grants.filter(x => x !== g);
+    const removed = [];
+    d.rights = d.rights.filter(r => {
+      const c = findCh(d, r.challengeId);
+      const drop = c && c.requires.includes(achId) && !r.log.length && r.day >= g.day;
+      if(drop) removed.push(r.challengeId);
+      return !drop;
+    });
+    return { removedRights: removed };
   }
 
   const posInt = v => { if(v === '' || v === null || v === undefined) return null; const n = Number(v); return Number.isFinite(n) && n >= 1 ? Math.floor(n) : NaN; };
@@ -358,21 +373,52 @@ const E = (() => {
     return [...new Set(errs)];
   }
 
-  function proposeRule(d, { op, type, id, def: raw, note, today, delivery }){
+  // 実績・挑戦権を足す・直す(自由に。履歴は rules に残す)
+  function saveDef(d, { type, id, raw, today }){
     const def = cleanDef(type, raw);
-    let before = null;
-    if(op === 'edit'){
-      const cur = type === 'achievement' ? findAch(d, id) : findCh(d, id);
-      if(!cur) throw new Error('直す対象が見つかりません');
-      before = clone(cur);
-    }
-    const errs = validateDef(d, type, def, op === 'edit' ? id : null);
+    const list = type === 'achievement' ? d.achievements : d.challenges;
+    const cur = id ? list.find(x => x.id === id) : null;
+    if(id && !cur && !raw.__import) throw new Error('直す対象が見つかりません');
+    const errs = validateDef(d, type, def, id || null);
     if(errs.length) throw new Error(errs.join('/'));
-    const r = { id: newId('r-'), day: today, kind: 'rule', target: op === 'edit' ? id : null,
-      content: { op, type, id: op === 'edit' ? id : null, def, before }, note: String(note || '').trim(), status: 'pending' };
-    if(delivery) r.delivery = delivery;
-    d.reviews.push(r);
-    return r;
+    let before = null;
+    if(cur){ before = clone(cur); Object.assign(cur, def, { id }); }
+    else { id = id || newId(type === 'achievement' ? 'a-' : 'c-'); list.push(Object.assign({ id }, def)); }
+    d.rules.push({ day: today, op: before ? 'edit' : 'add', type, id, before, after: clone(list.find(x => x.id === id)) });
+    return { id, newRights: checkRights(d, today) };
+  }
+  function removeDef(d, { type, id, today }){
+    const list = type === 'achievement' ? d.achievements : d.challenges;
+    const cur = list.find(x => x.id === id);
+    if(!cur) throw new Error('見つかりません');
+    if(type === 'achievement'){
+      if(grantFor(d, id)) throw new Error('手に入れた実績は消せません(先に取り消してください)');
+      const users = [...d.achievements, ...d.challenges].filter(x => (x.requires || []).includes(id));
+      if(users.length) throw new Error('「' + users.map(x => x.name).join('、') + '」の必要実績になっているので消せません');
+    } else if(rightFor(d, id)) throw new Error('持っている挑戦権は消せません');
+    list.splice(list.indexOf(cur), 1);
+    d.rules.push({ day: today, op: 'remove', type, id, before: clone(cur), after: null });
+    return true;
+  }
+  // 届いた紋章(取り込みの文字)を読む
+  function parsePack(text){
+    const s = String(text || ''), i = s.indexOf('{'), j = s.lastIndexOf('}');
+    if(i < 0 || j < i) throw new Error('取り込みの文字が見つかりません');
+    let p; try{ p = JSON.parse(s.slice(i, j + 1)); }catch(e){ throw new Error('取り込みの文字が途中で切れているか、形がちがいます'); }
+    if(!p || p.eiten !== 1) throw new Error('栄典の取り込みの文字ではありません');
+    ['parts','arts','achievements','challenges'].forEach(k => { if(!Array.isArray(p[k])) p[k] = []; });
+    [...p.parts, ...p.arts, ...p.achievements, ...p.challenges].forEach(x => { if(!x || !x.id || !x.name) throw new Error('名前かidのないものが入っています'); });
+    if(p.parts.some(x => /^b-/.test(x.id)) || p.arts.some(x => /^ba-/.test(x.id))) throw new Error('最初からある部品と同じidは使えません');
+    return p;
+  }
+  function importPack(d, p, today){
+    const up = (list, x) => { const k = list.findIndex(y => y.id === x.id); if(k >= 0){ list[k] = clone(x); return 1; } list.push(clone(x)); return 0; };
+    let replaced = 0;
+    p.parts.forEach(x => replaced += up(d.parts, Object.assign({ kind: '紋' }, x, { builtin: undefined })));
+    p.arts.forEach(x => replaced += up(d.arts, Object.assign({ text: { str: '' } }, x, { builtin: undefined })));
+    p.achievements.forEach(x => { if(findAch(d, x.id)) replaced++; saveDef(d, { type: 'achievement', id: x.id, raw: Object.assign({}, x, { __import: true }), today }); });
+    p.challenges.forEach(x => { if(findCh(d, x.id)) replaced++; saveDef(d, { type: 'challenge', id: x.id, raw: Object.assign({}, x, { __import: true }), today }); });
+    return { parts: p.parts.length, arts: p.arts.length, achievements: p.achievements.length, challenges: p.challenges.length, replaced, newRights: checkRights(d, today) };
   }
 
   // 条件がそろった挑戦権を渡す(一度得たものは取り上げない)
@@ -388,57 +434,10 @@ const E = (() => {
     return got;
   }
 
-  function decide(d, reviewId, { approve, reason, today }){
-    const r = d.reviews.find(x => x.id === reviewId);
-    if(!r) throw new Error('その審査は見つかりません');
-    if(r.status !== 'pending') throw new Error('この審査はもう決まっています');
-    if(!reason || !reason.trim()) throw new Error('理由を書いてください');
-    const out = { granted: null, newRights: [], ruleId: null };
-    if(approve){
-      if(r.kind === 'apply'){
-        const a = findAch(d, r.target);
-        if(!a) throw new Error('申請された実績が、もうありません');
-        const g = grantFor(d, a.id);
-        const expires = a.renewDays ? addDays(today, a.renewDays) : null;
-        if(g){
-          if(!r.renewal || !a.renewDays) throw new Error('もう手に入れています');
-          g.renewals.push({ day: today, reviewId: r.id, evidence: r.evidence });
-          g.expires = expires;
-        } else {
-          const miss = missing(d, a.requires, today);
-          if(miss.length) throw new Error('必要実績がそろっていないので認められません');
-          d.grants.push({ achId: a.id, day: today, evidence: r.evidence, reviewId: r.id, expires, renewals: [] });
-        }
-        out.granted = { achId: a.id, renewal: !!g };
-      } else {
-        const c = r.content;
-        const errs = validateDef(d, c.type, c.def, c.op === 'edit' ? c.id : null);
-        if(errs.length) throw new Error('今のルールでは認められません:' + errs.join('/'));
-        const list = c.type === 'achievement' ? d.achievements : d.challenges;
-        let id = c.id, before = null;
-        if(c.op === 'add'){
-          id = newId(c.type === 'achievement' ? 'a-' : 'c-');
-          list.push(Object.assign({ id }, clone(c.def)));
-        } else {
-          const cur = list.find(x => x.id === id);
-          if(!cur) throw new Error('直す対象が、もうありません');
-          before = clone(cur);
-          Object.assign(cur, clone(c.def), { id });
-        }
-        d.rules.push({ day: today, reviewId: r.id, op: c.op, type: c.type, id, before, after: clone(list.find(x => x.id === id)) });
-        out.ruleId = id;
-      }
-      out.newRights = checkRights(d, today);
-    }
-    r.status = approve ? 'approved' : 'returned';
-    r.reason = reason.trim();
-    r.decidedDay = today;
-    return out;
-  }
 
   return { VERSION_DATA: 1, NEAR_DAYS, newId, taskDay, addDays, diffDays, emptyData, normalize, clone,
     findAch, findCh, grantFor, rightFor, held, inPeriod, missing, achStatus, challengeStatus,
-    canApply, submitApplication, cleanDef, validateDef, hasCycle, proposeRule, checkRights, decide };
+    canGrant, grant, ungrant, cleanDef, validateDef, hasCycle, saveDef, removeDef, parsePack, importPack, checkRights };
 })();
 
 /* ===================== 絵(部品と勲章) ===================== */
@@ -653,8 +652,8 @@ function parseMinistries(j){
 }
 
 /* ===================== 画面 ===================== */
-const S = { cfg: loadCfg(), data: E.emptyData(), sha: null, ministries: [], tab: 'list', field: 'all', ruleDraft: null, loaded: false, busy: false };
-const TABS = [['tree','樹形図'],['list','一覧'],['review','審査会議'],['settings','設定'],['studio','工房']];
+const S = { cfg: loadCfg(), data: E.emptyData(), sha: null, ministries: [], tab: 'list', field: 'all', edit: null, importPreview: null, loaded: false, busy: false };
+const TABS = [['tree','樹形図'],['list','一覧'],['settings','設定'],['studio','工房']];
 const $ = s => document.querySelector(s);
 const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const today = () => E.taskDay();
@@ -694,7 +693,7 @@ function render(){
     m.innerHTML = `<div class="empty">右上の「接続」から、リポジトリとトークンを入れてください。データは <b>${h(PATHS.data)}</b> に置きます。</div>`;
     return;
   }
-  m.innerHTML = ({ tree: renderTree, list: renderList, review: renderReview, settings: renderSettings, studio: renderStudio }[S.tab])();
+  m.innerHTML = ({ tree: renderTree, list: renderList, settings: renderSettings, studio: renderStudio }[S.tab])();
   if(S.tab === 'studio') drawCanvas();
 }
 
@@ -716,8 +715,8 @@ function renderList(){
     if(st.state !== 'got') return `<div class="slot off">${achMedal(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}</div></div>`;
     const mode = st.expired ? 'expired' : st.near ? 'near' : 'got';
     const g = st.grant;
-    const sub = [`${fmtDay(g.day)}認定`];
-    if(g.expires) sub.push(st.expired ? '期限切れ・更新の申請を' : `更新期限 ${fmtDay(g.expires)}`);
+    const sub = [`${fmtDay(g.day)}達成`];
+    if(g.expires) sub.push(st.expired ? '期限切れ・更新を' : `更新期限 ${fmtDay(g.expires)}`);
     return `<div class="slot">${achMedal(a, mode)}<div class="nm">${h(a.name)}</div><div class="sm">${sub.map(h).join('<br>')}</div></div>`;
   }).join('') : '';
   const rights = d.rights.filter(r => { const c = E.findCh(d, r.challengeId); return c && inField(c); });
@@ -730,52 +729,13 @@ function renderList(){
     return `<div class="card"><div class="door${off ? ' off' : ''}" aria-hidden="true"></div><div><h3>${h(c.name)}</h3><div class="note" style="margin:0">${bits.map(h).join('/')}</div></div></div>`;
   }).join('') : '<div class="empty">まだ挑戦権はありません。必要実績をそろえると、ここに並びます。</div>';
   return `<h2>手に入れた実績</h2>${fieldChips()}` +
-    (shelf ? `<div class="shelf">${shelf}</div>` : '<div class="empty">まだ実績が決まっていません。審査会議で実績を足すと、ここに影が並びます。</div>') +
+    (shelf ? `<div class="shelf">${shelf}</div>` : '<div class="empty">まだ実績が決まっていません。設定で実績を足すと、ここに影が並びます。</div>') +
     `<h2>持っている挑戦権</h2><div class="rights">${rightsHtml}</div>`;
 }
 
-/* ---- 設定(見るだけ) ---- */
-function renderSettings(){
-  const d = S.data, t = today();
-  const achs = d.achievements.filter(inField), chs = d.challenges.filter(inField);
-  const achHtml = achs.map(a => `<article class="def" id="def-${h(a.id)}">
-    <div class="art">${achMedal(a, E.achStatus(d, a, t).state === 'got' ? 'got' : 'shadow', 56)}</div>
-    <div><h3>${h(a.name)}</h3><dl>
-      <dt>分野</dt><dd>${tags(a.fields)}</dd>
-      <dt>達成条件</dt><dd>${h(a.condition)}</dd>
-      ${a.description ? `<dt>内容</dt><dd>${h(a.description)}</dd>` : ''}
-      <dt>必要実績</dt><dd>${reqList(a.requires, t)}</dd>
-      <dt>更新制</dt><dd>${a.renewDays ? `${a.renewDays}日ごとに再審査` : 'なし'}</dd>
-      <dt>申請できる期間</dt><dd>${h(fmtPeriod(a.period))}</dd>
-      <dt>勲章</dt><dd>${h(fmtVal('art', a.art))}</dd>
-    </dl></div>
-    <div class="acts"><button class="btn line small" data-act="propose-edit" data-type="achievement" data-id="${h(a.id)}">変更を申し出る</button></div>
-  </article>`).join('');
-  const chHtml = chs.map(c => `<article class="def" id="def-${h(c.id)}">
-    <div class="art"><div class="door${E.rightFor(d, c.id) ? '' : ' off'}" aria-hidden="true"></div></div>
-    <div><h3>${h(c.name)}</h3><dl>
-      <dt>分野</dt><dd>${tags(c.fields)}</dd>
-      <dt>達成条件</dt><dd>${h(c.condition)}</dd>
-      ${c.description ? `<dt>内容</dt><dd>${h(c.description)}</dd>` : ''}
-      <dt>必要実績</dt><dd>${reqList(c.requires, t)}</dd>
-      <dt>回数</dt><dd>${c.uses ? `${c.uses}回まで` : '無制限'}</dd>
-      <dt>再挑戦までの間</dt><dd>${c.cooldownDays ? `${c.cooldownDays}日` : 'なし'}</dd>
-      <dt>有効期限</dt><dd>${c.validDays ? `得てから${c.validDays}日` : 'なし'}</dd>
-      <dt>得られる期間</dt><dd>${h(fmtPeriod(c.period))}</dd>
-    </dl></div>
-    <div class="acts"><button class="btn line small" data-act="propose-edit" data-type="challenge" data-id="${h(c.id)}">変更を申し出る</button></div>
-  </article>`).join('');
-  return `<h2>設定</h2><p class="note">ここでは直接変えられません。変えたいときは「申し出る」から審査会議に出し、認められたものだけが反映されます。</p>
-    <div class="acts"><button class="btn small" data-act="propose-add" data-type="achievement">実績を足すことを申し出る</button>
-    <button class="btn small" data-act="propose-add" data-type="challenge">挑戦権を足すことを申し出る</button></div>
-    ${fieldChips()}
-    <h2>実績</h2>${achHtml || '<div class="empty">実績はまだありません。</div>'}
-    <h2>挑戦権</h2>${chHtml || '<div class="empty">挑戦権はまだありません。</div>'}`;
-}
-
-/* ---- 審査会議 ---- */
+/* ---- 設定(自由に足す・直す・消す) ---- */
 const DEF_ROWS = {
-  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['renewDays','更新制'],['period','申請できる期間'],['art','勲章']],
+  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['renewDays','更新制'],['period','達成できる期間'],['art','勲章']],
   challenge: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['uses','回数'],['cooldownDays','再挑戦までの間'],['validDays','有効期限'],['period','得られる期間']],
 };
 function fmtVal(k, v){
@@ -784,69 +744,69 @@ function fmtVal(k, v){
   if(k === 'period') return fmtPeriod(v);
   if(k === 'description') return v || 'なし';
   if(k === 'art'){ const a = findArt(v); return v ? (a ? a.name : '(なくなった勲章)') : '仮の勲章'; }
-  if(k === 'renewDays') return v ? `${v}日ごとに再審査` : 'なし';
+  if(k === 'renewDays') return v ? `${v}日ごとに更新` : 'なし';
   if(k === 'uses') return v ? `${v}回まで` : '無制限';
   if(k === 'cooldownDays') return v ? `${v}日` : 'なし';
   if(k === 'validDays') return v ? `得てから${v}日` : 'なし';
   return v ?? '';
 }
-function diffTable(c){
-  return `<table class="diff"><tr><th></th>${c.before ? '<th>今</th>' : ''}<th>${c.before ? '変えたあと' : '中身'}</th></tr>` +
-    DEF_ROWS[c.type].map(([k, n]) => {
-      const a = c.before ? fmtVal(k, c.before[k]) : null, b = fmtVal(k, c.def[k]);
-      return `<tr class="${c.before && a !== b ? 'chg' : ''}"><th>${n}</th>${c.before ? `<td>${h(a)}</td>` : ''}<td>${h(b)}</td></tr>`;
-    }).join('') + '</table>';
+function grantButtons(a, t, small){
+  const st = E.achStatus(S.data, a, t), c = E.canGrant(S.data, a.id, t), cls = 'btn' + (small ? ' small' : '');
+  const out = [];
+  if(c.ok) out.push(`<button class="${cls} gilt" data-act="grant" data-id="${h(a.id)}">${c.renewal ? '更新した' : '達成した'}</button>`);
+  if(st.state === 'got') out.push(`<button class="${cls} line" data-act="ungrant" data-id="${h(a.id)}">取り消す</button>`);
+  return out.join('');
 }
-const ruleTitle = c => `${c.type === 'achievement' ? '実績' : '挑戦権'}を${c.op === 'add' ? '足す' : '直す'}:${c.def.name}`;
-
-function renderReview(){
+function defRows(o, type, t){
+  return DEF_ROWS[type].filter(([k]) => k !== 'name' && (k !== 'description' || o.description)).map(([k, n]) =>
+    `<dt>${n}</dt><dd>${k === 'fields' ? tags(o.fields) : k === 'requires' ? reqList(o.requires, t) : h(fmtVal(k, o[k]))}</dd>`).join('');
+}
+function renderSettings(){
   const d = S.data, t = today();
-  const opts = d.achievements.map(a => {
-    const c = E.canApply(d, a.id, t);
-    return `<option value="${h(a.id)}" ${c.ok ? '' : 'disabled'} ${c.ok && S.applyPreset === a.id ? 'selected' : ''}>${h(a.name)}${c.ok ? (c.renewal ? '(更新)' : '') : '—' + h(c.reason)}</option>`;
-  }).join('');
-  S.applyPreset = null;
-  const pending = d.reviews.filter(r => r.status === 'pending');
-  const pendHtml = pending.length ? pending.map(r => {
-    const head = r.kind === 'apply'
-      ? `<h3>実績の${r.renewal ? '更新' : ''}申請:${h(achName(r.target))}</h3>
-         <dl class="note" style="margin:0"><dt>照らすルール(達成条件)</dt><dd style="margin:0 0 4px;color:var(--ink)">${h((E.findAch(d, r.target) || {}).condition)}</dd>
-         <dt>証拠</dt><dd style="margin:0;color:var(--ink);white-space:pre-wrap">${h(r.evidence)}</dd></dl>`
-      : `<h3>ルールの変更:${h(ruleTitle(r.content))}</h3>${diffTable(r.content)}${r.note ? `<div class="note">申し出の理由:${h(r.note)}</div>` : ''}`;
-    return `<div class="card pending">${head}<div class="note">${fmtDay(r.day)}に出された</div>
-      <label class="note" for="why-${r.id}">決めた理由</label><textarea id="why-${r.id}" placeholder="ルールに照らして、なぜ認める・差し戻すのか"></textarea>
-      <div class="acts"><button class="btn gilt" data-act="decide" data-id="${r.id}" data-ok="1">認める</button>
-      <button class="btn line" data-act="decide" data-id="${r.id}" data-ok="0">差し戻す</button></div></div>`;
-  }).join('') : '<div class="empty">審査を待っているものはありません。</div>';
-  const done = d.reviews.filter(r => r.status !== 'pending').slice().reverse();
-  const logHtml = done.length ? done.map(r => `<details class="log"><summary>${fmtDay(r.decidedDay)} <span class="st-${r.status}">${r.status === 'approved' ? '認めた' : '差し戻した'}</span> ${h(r.kind === 'apply' ? `申請:${achName(r.target)}${r.renewal ? '(更新)' : ''}` : ruleTitle(r.content))}</summary>
-    <div style="padding:6px 0 4px">${r.kind === 'apply' ? `<div class="note" style="white-space:pre-wrap">証拠:${h(r.evidence)}</div>` : diffTable(r.content) + (r.note ? `<div class="note">申し出の理由:${h(r.note)}</div>` : '')}
-    <div>理由:${h(r.reason)}</div><div class="note">${fmtDay(r.day)}に出され、${fmtDay(r.decidedDay)}に決まった</div></div></details>`).join('')
-    : '<div class="empty">まだ記録はありません。</div>';
-
+  const achs = d.achievements.filter(inField), chs = d.challenges.filter(inField);
+  const achHtml = achs.map(a => {
+    const st = E.achStatus(d, a, t);
+    const state = st.state === 'got' ? `${fmtDay(st.grant.day)}に達成${st.grant.expires ? `・更新期限 ${fmtDay(st.grant.expires)}` : ''}` : st.state === 'open' ? '今目指せる' : '鍵がかかっている';
+    return `<article class="def" id="def-${h(a.id)}">
+    <div class="art">${achMedal(a, st.state === 'got' ? (st.expired ? 'expired' : st.near ? 'near' : 'got') : 'shadow', 56)}</div>
+    <div><h3>${h(a.name)} <span class="note">(${h(state)})</span></h3><dl>${defRows(a, 'achievement', t)}</dl></div>
+    <div class="acts">${grantButtons(a, t, true)}<button class="btn line small" data-act="def-edit" data-type="achievement" data-id="${h(a.id)}">直す</button><button class="btn line small" data-act="def-del" data-type="achievement" data-id="${h(a.id)}">消す</button></div>
+  </article>`; }).join('');
+  const chHtml = chs.map(c => `<article class="def" id="def-${h(c.id)}">
+    <div class="art"><div class="door${E.rightFor(d, c.id) ? '' : ' off'}" aria-hidden="true"></div></div>
+    <div><h3>${h(c.name)}</h3><dl>${defRows(c, 'challenge', t)}</dl></div>
+    <div class="acts"><button class="btn line small" data-act="def-edit" data-type="challenge" data-id="${h(c.id)}">直す</button><button class="btn line small" data-act="def-del" data-type="challenge" data-id="${h(c.id)}">消す</button></div>
+  </article>`).join('');
   const dels = openDeliveries();
-  const delHtml = dels.length ? `<h2>届いた案</h2><p class="note">作ってもらった実績の案です。中身を見て、よければ審査会議に申し出てください(申し出る前に直せます)。</p>` + dels.map(x => {
-    const fake = Object.assign({ id: '' }, x.def);
-    return `<div class="card delivery"><div class="dv-art">${achMedal(fake, 'got', 96)}</div><div><h3>${h(x.def.name)}</h3>
+  const delHtml = dels.length ? `<h2>届いた案</h2>` + dels.map(x => `<div class="card delivery"><div class="dv-art">${achMedal(Object.assign({ id: '' }, x.def), 'got', 96)}</div><div><h3>${h(x.def.name)}</h3>
       <div class="note" style="margin:0">達成条件</div><div>${h(x.def.condition)}</div>
       ${x.def.description ? `<div class="note" style="margin:6px 0 0">内容</div><div>${h(x.def.description)}</div>` : ''}
-      <div class="acts"><button class="btn small" data-act="take-delivery" data-id="${x.id}">この案で申し出る</button></div></div></div>`;
-  }).join('') : '';
-  return `${delHtml}<h2>実績を申請する</h2>
-    ${d.achievements.length ? `<div class="card form">
-      <label class="f">実績<select id="ap-ach"><option value="">選んでください</option>${opts}</select></label>
-      <label class="f">証拠(何をしたか、どこで確かめられるか)<textarea id="ap-evi"></textarea></label>
-      <div><button class="btn" data-act="apply">申請する</button></div></div>` : '<div class="empty">申請できる実績がまだありません。先に下の「ルールの変更を申し出る」で実績を足してください。</div>'}
-    <h2>審査を待っている</h2>${pendHtml}
-    <h2>ルールの変更を申し出る</h2>${S.ruleDraft ? ruleForm() : `<div class="acts">
-      <button class="btn small" data-act="propose-add" data-type="achievement">実績を足す</button>
-      <button class="btn small" data-act="propose-add" data-type="challenge">挑戦権を足す</button>
-      <span class="note" style="align-self:center">直すときは、設定の「変更を申し出る」から</span></div>`}
-    <h2>記録</h2>${logHtml}`;
+      <div class="acts"><button class="btn small" data-act="take-delivery" data-id="${x.id}">この案で足す(直してから足せます)</button></div></div></div>`).join('') : '';
+  return `<h2>設定</h2><p class="note">実績と挑戦権は、ここで自由に足す・直す・消すことができます。達成したら「達成した」を押します。</p>
+    ${S.edit ? defForm() : `<div class="acts"><button class="btn small" data-act="def-add" data-type="achievement">実績を足す</button><button class="btn small" data-act="def-add" data-type="challenge">挑戦権を足す</button></div>`}
+    ${importBox()}
+    ${delHtml}
+    ${fieldChips()}
+    <h2>実績</h2>${achHtml || '<div class="empty">実績はまだありません。</div>'}
+    <h2>挑戦権</h2>${chHtml || '<div class="empty">挑戦権はまだありません。</div>'}`;
 }
-
-function ruleForm(){
-  const r = S.ruleDraft, d = r.def, isA = r.type === 'achievement';
+function importBox(){
+  const p = S.importPreview;
+  let prev = '';
+  if(p){
+    const medals = p.arts.map(a => `<div class="slot" style="padding-bottom:4px">${A.artSvg(a, id => getPart(id) || p.parts.find(x => x.id === id), { size: 72 })}<div class="sm">${h(a.name)}</div></div>`).join('');
+    const items = [...p.achievements.map(a => `実績「${h(a.name)}」${E.findAch(S.data, a.id) ? '(今あるものを上書き)' : ''}`), ...p.challenges.map(c => `挑戦権「${h(c.name)}」${E.findCh(S.data, c.id) ? '(今あるものを上書き)' : ''}`),
+      ...p.parts.map(x => `部品「${h(x.name)}」`)];
+    prev = `<div class="card"><h3>${h(p.title || '取り込む中身')}</h3>${medals ? `<div class="shelf" style="padding:6px 0">${medals}</div>` : ''}<div class="note">${items.join('<br>')}</div>
+      <div class="acts"><button class="btn gilt" data-act="import-do">取り込む</button><button class="btn line" data-act="import-cancel">やめる</button></div></div>`;
+  }
+  return `<details class="card importbox" ${p ? 'open' : ''}><summary><b>届いた紋章を取り込む</b> <span class="note">(Claudeが作った紋章の文字を貼る)</span></summary>
+    <p class="note">Claudeから受け取った「取り込みの文字」をそのまま貼って、読み込むを押してください。ファイルを入れ替えなくても、勲章・部品・実績が入ります。</p>
+    <textarea id="imp-text" placeholder='{"eiten":1, ...}'></textarea>
+    <div class="acts"><button class="btn small" data-act="import-read">読み込む</button></div>${prev}</details>`;
+}
+function defForm(){
+  const r = S.edit, d = r.def, isA = r.type === 'achievement';
   const fieldTags = [...new Set([...S.ministries.map(m => m.tag), ...(d.fields || [])])];
   const fieldsHtml = fieldTags.length ? fieldTags.map(t => `<label><input type="checkbox" name="rf-field" value="${h(t)}" ${(d.fields || []).includes(t) ? 'checked' : ''}>${h(fieldName(t))}</label>`).join('')
     : '<span class="note">省の一覧が読めていません</span>';
@@ -855,30 +815,30 @@ function ruleForm(){
     : '<span class="note">選べる実績がまだありません</span>';
   const p = d.period || {};
   const num = (id, label, v, hint) => `<label class="f">${label}<input type="number" min="1" id="${id}" value="${v ?? ''}" placeholder="${hint}"></label>`;
-  return `<div class="card form" id="rule-form">
-    <h3>${isA ? '実績' : '挑戦権'}を${r.op === 'add' ? '足す' : '直す'}</h3>
+  const artOpts = [...A.BUILTIN_ARTS, ...S.data.arts].map(a => `<option value="${h(a.id)}" ${d.art === a.id ? 'selected' : ''}>${h(a.name)}</option>`).join('');
+  return `<div class="card form" id="def-form">
+    <h3>${isA ? '実績' : '挑戦権'}を${r.id ? '直す' : '足す'}</h3>
     <label class="f">名前<input type="text" id="rf-name" value="${h(d.name)}"></label>
     <div class="f note">分野<div class="checks">${fieldsHtml}</div></div>
-    <label class="f">達成条件<textarea id="rf-cond">${h(d.condition)}</textarea></label>
+    <label class="f">達成条件(見れば達成したか分かる形で)<textarea id="rf-cond">${h(d.condition)}</textarea></label>
     <label class="f">${isA ? '実績' : '挑戦権'}の内容(どんなものか・込めた意味。任意)<textarea id="rf-desc">${h(d.description || '')}</textarea></label>
     <div class="f note">必要実績${isA ? '' : '(この組み合わせを持つと得られる)'}<div class="checks">${reqHtml}</div></div>
-    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに再審査)', d.renewDays, '空なら更新なし')}<label class="f">勲章<select id="rf-art"><option value="">仮の勲章</option>${[...A.BUILTIN_ARTS, ...S.data.arts].map(a => `<option value="${h(a.id)}" ${d.art === a.id ? 'selected' : ''}>${h(a.name)}${a.builtin ? '(届いた勲章)' : ''}</option>`).join('')}</select></label></div>`
+    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに更新)', d.renewDays, '空なら更新なし')}<label class="f">勲章<select id="rf-art"><option value="">仮の勲章</option>${artOpts}</select></label></div>`
           : `<div class="two">${num('rf-uses', '回数', d.uses, '空なら無制限')}${num('rf-cool', '再挑戦までの日数', d.cooldownDays, '空ならなし')}</div>
              <div class="two">${num('rf-valid', '有効期限(得てから何日)', d.validDays, '空ならなし')}<span></span></div>`}
-    <div class="two"><label class="f">${isA ? '申請できる' : '得られる'}期間の始まり<input type="date" id="rf-from" value="${h(p.from || '')}"></label>
+    <div class="two"><label class="f">${isA ? '達成できる' : '得られる'}期間の始まり<input type="date" id="rf-from" value="${h(p.from || '')}"></label>
       <label class="f">期間の終わり<input type="date" id="rf-to" value="${h(p.to || '')}"></label></div>
-    <label class="f">申し出の理由<textarea id="rf-note">${h(r.note || '')}</textarea></label>
-    <div class="acts"><button class="btn" data-act="rule-submit">審査会議に出す</button><button class="btn line" data-act="rule-cancel">やめる</button></div>
+    <div class="acts"><button class="btn" data-act="def-save">${r.id ? '直す' : '足す'}</button><button class="btn line" data-act="def-cancel">やめる</button></div>
   </div>`;
 }
-function readRuleForm(){
+function readDefForm(){
   const v = id => ($('#' + id) || {}).value || '';
   const checked = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value);
   const raw = { name: v('rf-name'), fields: checked('rf-field'), condition: v('rf-cond'), description: v('rf-desc'), requires: checked('rf-req'),
-    period: { from: v('rf-from'), to: v('rf-to') }, art: S.ruleDraft.type === 'achievement' ? (v('rf-art') || null) : null };
-  if(S.ruleDraft.type === 'achievement') raw.renewDays = v('rf-renew');
+    period: { from: v('rf-from'), to: v('rf-to') }, art: S.edit.type === 'achievement' ? (v('rf-art') || null) : null };
+  if(S.edit.type === 'achievement') raw.renewDays = v('rf-renew');
   else { raw.uses = v('rf-uses'); raw.cooldownDays = v('rf-cool'); raw.validDays = v('rf-valid'); }
-  return { raw, note: v('rf-note') };
+  return raw;
 }
 
 /* ===================== 届いた案(Claudeに作ってもらった実績) ===================== */
@@ -888,7 +848,7 @@ const DELIVERIES = [
       description: '一つひとつのタスクを、毎日の当たり前になるまで育てた証。最初の一歩を重ね続けて、定着したタスクが10個に届いたことをたたえる。',
       requires: [], period: null, art: 'ba-senri', renewDays: null } },
 ];
-const openDeliveries = () => DELIVERIES.filter(x => !S.data.reviews.some(r => r.delivery === x.id));
+const openDeliveries = () => DELIVERIES.filter(x => !S.data.reviews.some(r => r.delivery === x.id) && !S.data.achievements.some(a => a.name === x.def.name));
 
 /* ===================== 勲章の表示 ===================== */
 const getPart = id => A.builtin(id) || S.data.parts.find(p => p.id === id);
@@ -964,17 +924,16 @@ function treeDetail(n, t){
   const label = { got: '手に入れた', open: '今目指せる', locked: '鍵がかかっている' }[st.state];
   const now = [];
   if(isA && st.state === 'got'){
-    now.push(`${fmtDay(st.grant.day)}に認定`);
-    if(st.grant.expires) now.push(st.expired ? `更新期限(${fmtDay(st.grant.expires)})を過ぎています。更新の申請を` : `更新期限 ${fmtDay(st.grant.expires)}(あと${st.left}日)`);
+    now.push(`${fmtDay(st.grant.day)}に達成`);
+    if(st.grant.expires) now.push(st.expired ? `更新期限(${fmtDay(st.grant.expires)})を過ぎています。更新したら「更新した」を` : `更新期限 ${fmtDay(st.grant.expires)}(あと${st.left}日)`);
   }
   if(!isA && st.state === 'got'){
     const r = st.right;
     now.push(`${fmtDay(r.day)}に得た`, r.left === null ? '回数は無制限' : `残り${r.left}回`, r.expires ? (st.expired ? '有効期限が切れています' : `有効期限 ${fmtDay(r.expires)}`) : '有効期限なし');
     if(st.nextDay) now.push(st.waiting ? `${fmtDay(st.nextDay)}から再挑戦できる` : '再挑戦できる');
   }
-  if(st.state !== 'got' && st.outOfPeriod) now.push('今は申請できる期間の外です');
+  if(st.state !== 'got' && st.outOfPeriod) now.push('今は達成できる期間の外です');
   const reqs = (o.requires || []).map(id => `<li>${E.held(S.data, id, t) ? '✓ 持っている' : '・まだ'}:${h(achName(id))}</li>`).join('') || '<li>なし</li>';
-  const canApply = isA && E.canApply(S.data, o.id, t).ok;
   return `<div class="card detail" id="tree-detail">
     <h3>${isA ? '実績' : '挑戦権'}:${h(o.name)}</h3>
     <div>${tags(o.fields)}${n.outside ? '<span class="note">(ほかの分野の実績)</span>' : ''}</div>
@@ -982,12 +941,11 @@ function treeDetail(n, t){
     ${o.description ? `<dt>内容</dt><dd>${h(o.description)}</dd>` : ''}
     <dt>必要実績</dt><dd><ul class="reqs">${reqs}</ul></dd>
     <dt>現在の状態</dt><dd><b>${label}</b>${now.length ? '<br>' + now.map(h).join('<br>') : ''}</dd></dl>
-    <div class="acts"><button class="btn line small" data-act="goto-def" data-id="${h(o.id)}">設定で見る</button>
-    ${canApply ? `<button class="btn small" data-act="goto-apply" data-id="${h(o.id)}">申請する</button>` : ''}</div></div>`;
+    <div class="acts">${isA ? grantButtons(o, t, true) : ''}<button class="btn line small" data-act="goto-def" data-id="${h(o.id)}">設定で見る</button></div></div>`;
 }
 function renderTree(){
   const t = today(), d = S.data;
-  if(!d.achievements.length && !d.challenges.length) return `<h2>樹形図</h2><div class="empty">まだ実績がありません。審査会議で実績を足すと、ここに図ができます。</div>`;
+  if(!d.achievements.length && !d.challenges.length) return `<h2>樹形図</h2><div class="empty">まだ実績がありません。設定で実績を足すと、ここに図ができます。</div>`;
   const L = treeLayout(d, S.field, t);
   const sel = L.nodes.find(n => n.key === S.treeSel);
   return `<h2>樹形図</h2>${fieldChips('すべてを合わせた図')}
@@ -1091,7 +1049,7 @@ function artPanel(){
       ${sl('text','y','縦の位置', t.y ?? 58, 10, 100, .5)}${sl('text','size','大きさ', t.size || 14, 4, 40, .5)}
       <label class="note" style="display:flex;align-items:center;gap:6px">文字の色<input type="color" data-o="text" data-f="fill" value="${h(t.fill || '#3a2a0c')}"></label></section>
     <div class="acts"><button class="btn" data-act="st-save-art">勲章をしまう</button>${a.id ? '<button class="btn line" data-act="st-del-art">この勲章を消す</button>' : ''}</div>
-    <p class="note">実績に結びつけるのは、設定の「変更を申し出る」から(審査会議を通します)。</p>`;
+    <p class="note">実績に結びつけるのは、設定の「直す」で勲章を選びます。</p>`;
 }
 function renderStudio(){
   ensureStudio();
@@ -1281,12 +1239,12 @@ function celebrate(achId, renewal){
   const a = E.findAch(S.data, achId); if(!a) return;
   const old = $('#fanfare'); if(old) old.remove();
   const el = document.createElement('div');
-  el.id = 'fanfare'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', `${a.name}を${renewal ? '更新' : '認定'}`);
+  el.id = 'fanfare'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', `${a.name}を${renewal ? '更新' : '達成'}`);
   const colors = ['#c9a24a','#f4dc8f','#7d1f2c','#2b4a86','#ffffff','#b8bec9'];
   let cf = '';
   for(let i = 0; i < 70; i++) cf += `<i class="cf" style="left:${(Math.random()*100).toFixed(1)}%;background:${colors[i % colors.length]};animation-duration:${(2.6 + Math.random()*2.6).toFixed(2)}s;animation-delay:${(Math.random()*.9).toFixed(2)}s;rotate:${Math.floor(Math.random()*360)}deg"></i>`;
   el.innerHTML = `<svg class="rays" viewBox="0 0 100 100" aria-hidden="true">${A.partInner(A.builtin('b-hikari'), A.metal('gold'))}</svg>${cf}
-    <div class="big">${achMedal(a, 'got', 200)}</div><h2>${h(a.name)}</h2><p>${renewal ? '更新しました。勲章がまた輝きます' : '認定されました'}</p>${a.description ? `<p class="desc">${h(a.description)}</p>` : ''}<p class="close">押すと閉じます</p>`;
+    <div class="big">${achMedal(a, 'got', 200)}</div><h2>${h(a.name)}</h2><p>${renewal ? '更新しました。勲章がまた輝きます' : '達成しました'}</p>${a.description ? `<p class="desc">${h(a.description)}</p>` : ''}<p class="close">押すと閉じます</p>`;
   el.addEventListener('click', () => el.remove());
   document.body.appendChild(el);
 }
@@ -1304,44 +1262,50 @@ async function commit(fn, message, okMsg){
   return res;
 }
 
+const ask = msg => typeof window.confirm === 'function' && window.confirm(msg);
 const Actions = {
-  async apply(){
-    const achId = $('#ap-ach').value, evidence = $('#ap-evi').value;
-    if(!achId){ toast('実績を選んでください', true); return; }
-    const t = today();
-    return commit(d => E.submitApplication(d, { achId, evidence, today: t }), `申請 ${achName(achId)}`, () => '申請しました。審査を待っています');
-  },
-  async decide(id, ok){
-    const reason = ($('#why-' + id) || {}).value || '';
-    const t = today();
-    return commit(d => E.decide(d, id, { approve: ok, reason, today: t }), ok ? '審査で認めた' : '審査で差し戻した', res => {
-      if(!ok) return '差し戻しました';
-      const parts = [];
-      if(res.granted) parts.push(`「${achName(res.granted.achId)}」を${res.granted.renewal ? '更新' : '認定'}しました`);
-      if(res.ruleId) parts.push('ルールの変更を反映しました');
-      if(res.newRights.length) parts.push('挑戦権を得ました:' + res.newRights.map(chName).join('、'));
-      return parts.join('。');
-    }).then(res => { if(ok && res && res.granted) celebrate(res.granted.achId, res.granted.renewal); return res; });
-  },
-  async ruleSubmit(){
-    const { raw, note } = readRuleForm();
-    const r = S.ruleDraft, t = today();
-    r.def = Object.assign({}, r.def, raw); r.note = note; // 失敗しても書いたものを残す
-    const res = await commit(d => E.proposeRule(d, { op: r.op, type: r.type, id: r.id, def: raw, note, today: t, delivery: r.delivery }), 'ルールの変更を申し出た', () => '審査会議に出しました');
-    if(res){ S.ruleDraft = null; render(); }
+  async grant(id){
+    const t = today(), a = E.findAch(S.data, id);
+    const res = await commit(d => E.grant(d, id, { today: t }), `達成 ${a ? a.name : id}`, r =>
+      `「${achName(r.achId)}」を${r.renewal ? '更新' : '達成'}しました` + (r.newRights.length ? '。挑戦権を得ました:' + r.newRights.map(chName).join('、') : ''));
+    if(res) celebrate(res.achId, res.renewal);
     return res;
   },
-  takeDelivery(id){
-    const x = DELIVERIES.find(v => v.id === id); if(!x) return;
-    S.ruleDraft = { op: 'add', type: x.type, id: null, def: E.clone(x.def), note: x.note, delivery: x.id };
-    S.tab = 'review'; render();
-    const f = $('#rule-form'); if(f && f.scrollIntoView) f.scrollIntoView({ block: 'start' });
+  async ungrant(id){
+    if(!ask(`「${achName(id)}」の達成を取り消しますか?`)) return null;
+    return commit(d => E.ungrant(d, id), `取り消し ${achName(id)}`, r => '取り消しました' + (r.removedRights.length ? '(それで得た挑戦権も戻しました)' : ''));
   },
-  startRule(op, type, id){
+  startEdit(type, id, preset){
     const cur = id ? (type === 'achievement' ? E.findAch(S.data, id) : E.findCh(S.data, id)) : null;
-    S.ruleDraft = { op, type, id: id || null, def: cur ? E.clone(cur) : { name: '', fields: S.field !== 'all' ? [S.field] : [], condition: '', requires: [], period: null }, note: '' };
-    S.tab = 'review'; render();
-    const f = $('#rule-form'); if(f && f.scrollIntoView) f.scrollIntoView({ block: 'start' });
+    S.edit = { type, id: id || null, def: preset ? E.clone(preset) : cur ? E.clone(cur) : { name: '', fields: S.field !== 'all' ? [S.field] : [], condition: '', description: '', requires: [], period: null } };
+    S.tab = 'settings'; render();
+    const f = $('#def-form'); if(f && f.scrollIntoView) f.scrollIntoView({ block: 'start' });
+  },
+  async saveDef(){
+    const raw = readDefForm(), r = S.edit, t = today();
+    r.def = Object.assign({}, r.def, raw); // 失敗しても書いたものを残す
+    const res = await commit(d => E.saveDef(d, { type: r.type, id: r.id, raw, today: t }), `${r.id ? '直す' : '足す'} ${raw.name}`, x =>
+      (r.id ? '直しました' : '足しました') + (x.newRights.length ? '。挑戦権を得ました:' + x.newRights.map(chName).join('、') : ''));
+    if(res){ S.edit = null; render(); }
+    return res;
+  },
+  async removeDef(type, id){
+    const name = type === 'achievement' ? achName(id) : chName(id);
+    if(!ask(`「${name}」を消しますか?`)) return null;
+    return commit(d => E.removeDef(d, { type, id, today: today() }), `消す ${name}`, () => '消しました');
+  },
+  takeDelivery(id){ const x = DELIVERIES.find(v => v.id === id); if(x) Actions.startEdit(x.type, null, x.def); },
+  importRead(){
+    try{ S.importPreview = E.parsePack(($('#imp-text') || {}).value); }
+    catch(err){ S.importPreview = null; toast(err.message, true); }
+    render();
+  },
+  async importDo(){
+    const p = S.importPreview; if(!p) return null;
+    const res = await commit(d => E.importPack(d, p, today()), `取り込み ${p.title || ''}`, r =>
+      `取り込みました(勲章${r.arts}・部品${r.parts}・実績${r.achievements}・挑戦権${r.challenges}${r.replaced ? `、うち${r.replaced}つは上書き` : ''})`);
+    if(res){ S.importPreview = null; render(); }
+    return res;
   },
 };
 
@@ -1352,15 +1316,18 @@ document.addEventListener('click', e => {
   if(!b) return;
   const act = b.dataset.act;
   if(act === 'field'){ S.field = b.dataset.v; render(); }
-  else if(act === 'apply') Actions.apply();
-  else if(act === 'decide') Actions.decide(b.dataset.id, b.dataset.ok === '1');
-  else if(act === 'propose-add') Actions.startRule('add', b.dataset.type);
-  else if(act === 'propose-edit') Actions.startRule('edit', b.dataset.type, b.dataset.id);
-  else if(act === 'rule-cancel'){ S.ruleDraft = null; render(); }
-  else if(act === 'rule-submit') Actions.ruleSubmit();
-  else if(act === 'goto-def'){ S.tab = 'settings'; S.field = 'all'; render(); const el = document.getElementById('def-' + b.dataset.id); if(el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
+  else if(act === 'grant') Actions.grant(b.dataset.id);
+  else if(act === 'ungrant') Actions.ungrant(b.dataset.id);
+  else if(act === 'def-add') Actions.startEdit(b.dataset.type);
+  else if(act === 'def-edit') Actions.startEdit(b.dataset.type, b.dataset.id);
+  else if(act === 'def-del') Actions.removeDef(b.dataset.type, b.dataset.id);
+  else if(act === 'def-cancel'){ S.edit = null; render(); }
+  else if(act === 'def-save') Actions.saveDef();
   else if(act === 'take-delivery') Actions.takeDelivery(b.dataset.id);
-  else if(act === 'goto-apply'){ S.tab = 'review'; S.applyPreset = b.dataset.id; render(); }
+  else if(act === 'import-read') Actions.importRead();
+  else if(act === 'import-do') Actions.importDo();
+  else if(act === 'import-cancel'){ S.importPreview = null; render(); }
+  else if(act === 'goto-def'){ S.tab = 'settings'; S.field = 'all'; render(); const el = document.getElementById('def-' + b.dataset.id); if(el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
   else if(act.startsWith('st-')) studioClick(act, b);
 });
 document.addEventListener('click', e => {
@@ -1394,6 +1361,10 @@ function initConn(){
   if(!S.cfg.token) panel.hidden = false;
 }
 
+// 他のアプリの紋章から飛んできたとき(#a:実績のid)
+function applyHash(){ const m = /^#([ac]):(.+)$/.exec(location.hash || ''); if(m){ S.tab = 'tree'; S.field = 'all'; S.treeSel = m[1] + ':' + decodeURIComponent(m[2]); } }
+addEventListener('hashchange', () => { applyHash(); render(); });
+applyHash();
 const App = { S, E, A, Actions, Studio, treeLayout, celebrate, render, loadAll, save, VERSION };
 window.App = App;
 initConn();
