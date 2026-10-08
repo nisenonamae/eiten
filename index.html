@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>栄典</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7d1f2c">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f2f3f6; --card:#fbfbfd; --ink:#1f2433; --sub:#5d6478; --line:#d5d8e0;
+  --ribbon:#7d1f2c; --gilt:#b08a3e; --gilt-pale:#efe4cc; --lapis:#2b4a86; --ok:#2f6b47;
+  --mincho:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--lapis);outline-offset:2px}
+
+/* 綬の帯 */
+.band{height:10px;background:linear-gradient(90deg,var(--ribbon) 0 38%,var(--gilt) 38% 41%,var(--ribbon) 41% 59%,var(--gilt) 59% 62%,var(--ribbon) 62%)}
+header{max-width:960px;margin:0 auto;padding:18px 16px 8px;display:flex;align-items:flex-end;gap:14px}
+h1{font-family:var(--mincho);font-weight:700;font-size:40px;letter-spacing:.18em;margin:0;line-height:1}
+.lead{margin:0 0 3px;color:var(--sub);font-size:13px}
+#connBtn{margin-left:auto}
+
+#conn{max-width:960px;margin:0 auto 6px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:6px}
+#conn .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#conn label{display:flex;flex-direction:column;font-size:12px;color:var(--sub)}
+#conn .row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.ver{font-size:12px;color:var(--sub)}
+
+nav#tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+nav#tabs .in{max-width:960px;margin:0 auto;display:flex;overflow-x:auto;padding:0 8px}
+nav#tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--sub);border-bottom:3px solid transparent;white-space:nowrap}
+nav#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ribbon);font-weight:600}
+
+main{max-width:960px;margin:0 auto;padding:12px 16px 80px}
+h2{font-family:var(--mincho);font-size:21px;margin:26px 0 8px;font-weight:700}
+h2:first-child{margin-top:8px}
+h3{font-size:15px;margin:0 0 4px}
+.note{color:var(--sub);font-size:13px;margin:4px 0 10px}
+.empty{color:var(--sub);padding:14px;border:1px dashed var(--line);border-radius:6px;background:var(--card)}
+
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:4px;padding:6px 14px;cursor:pointer}
+.btn.line{background:transparent;color:var(--ink)}
+.btn.gilt{background:var(--gilt);border-color:var(--gilt);color:#241a05}
+.btn.small{padding:2px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:default}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{border:1px solid var(--line);border-radius:4px;background:#fff;padding:6px 8px;width:100%}
+textarea{min-height:70px;resize:vertical}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:2px 12px;cursor:pointer;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+.def{border-top:1px solid var(--line);padding:12px 2px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start}
+.def:last-child{border-bottom:1px solid var(--line)}
+.def .art{grid-row:span 2}
+.def .medal{margin:0}
+.def dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:14px}
+.def dt{color:var(--sub)}
+.def dd{margin:0}
+.def .acts{grid-column:2}
+.tag{display:inline-block;font-size:12px;border-radius:3px;padding:0 6px;margin-right:4px;background:#e6e8ee}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:10px 0}
+.card.pending{border-left:4px solid var(--gilt)}
+.form{display:grid;gap:10px}
+.form label.f{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--sub)}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.checks{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--ink);font-size:14px}
+.checks label{display:flex;gap:4px;align-items:center}
+.diff{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}
+.diff th,.diff td{border-bottom:1px solid var(--line);text-align:left;padding:4px 6px;vertical-align:top}
+.diff th{color:var(--sub);font-weight:400;white-space:nowrap}
+.diff .chg td{background:var(--gilt-pale)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.log{border-top:1px solid var(--line);padding:8px 2px;font-size:14px}
+.log summary{cursor:pointer}
+.st-approved{color:var(--ok);font-weight:600}
+.st-returned{color:var(--ribbon);font-weight:600}
+
+/* 一覧の棚 */
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:18px 10px;padding:18px 12px 14px;
+  background:linear-gradient(#e7e9ef,#e7e9ef) bottom/100% 0 no-repeat;}
+.slot{text-align:center;font-size:13px;position:relative;padding-bottom:12px}
+.slot::after{content:"";position:absolute;left:4px;right:4px;bottom:0;height:6px;border-radius:2px;background:#c9ccd5;box-shadow:0 2px 0 #b4b8c3}
+.slot .nm{font-weight:600;line-height:1.35;margin-top:2px}
+.slot .sm{color:var(--sub);font-size:12px;line-height:1.4}
+.slot.off .nm{color:var(--sub);font-weight:400}
+.medal{display:block;margin:0 auto}
+.m-near{filter:saturate(.35) brightness(.92);opacity:.8}
+.m-expired{filter:grayscale(1);opacity:.55}
+.m-shadow path,.m-shadow circle{fill:none!important;stroke:#a9aebb;stroke-width:1.6;stroke-dasharray:4 3}
+.m-shadow text{display:none}
+.rights .card{display:flex;gap:12px;align-items:center}
+.door{flex:none;width:34px;height:44px;border:2px solid var(--lapis);border-radius:16px 16px 2px 2px;background:#dfe6f3}
+.door.off{border-color:#a9aebb;background:none;border-style:dashed}
+
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:6px;font-size:14px;max-width:90vw;display:none;z-index:20}
+#toast.err{background:var(--ribbon)}
+#toast.show{display:block}
+
+@media (max-width:600px){
+  h1{font-size:32px}
+  .def{grid-template-columns:1fr}
+  .def .art{grid-row:auto}
+  .def .acts{grid-column:1}
+  .form .two{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="band" aria-hidden="true"></div>
+<header>
+  <div>
+    <h1>栄典</h1>
+  </div>
+  <p class="lead">実績と挑戦権</p>
+  <button id="connBtn" class="btn line small" aria-expanded="false" aria-controls="conn">接続</button>
+</header>
+<section id="conn" hidden>
+  <div class="grid">
+    <label>持ち主<input type="text" id="c-owner" autocomplete="off"></label>
+    <label>リポジトリ<input type="text" id="c-repo" autocomplete="off"></label>
+    <label>ブランチ<input type="text" id="c-branch" autocomplete="off"></label>
+    <label>トークン<input type="password" id="c-token" autocomplete="off"></label>
+  </div>
+  <div class="row">
+    <button class="btn small" id="c-save">つないで読み込む</button>
+    <span class="ver">今開いている版:<b id="ver"></b></span>
+    <span class="ver" id="c-status"></span>
+  </div>
+</section>
+<nav id="tabs"><div class="in" role="tablist"></div></nav>
+<main id="main"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const VERSION = '2026-10-09 r1';
+const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
+
+/* ===================== 決まり(画面に依らない計算) ===================== */
+const E = (() => {
+  const DAY = 864e5, NEAR_DAYS = 14;
+  const KEYS = ['achievements','challenges','parts','arts','grants','rights','reviews','rules'];
+  const clone = o => JSON.parse(JSON.stringify(o));
+
+  // 1日の区切りは日本時間の朝5時(= UTC + 4時間 の日付)
+  function taskDay(d){ d = d || new Date(); return new Date(d.getTime() + 4*3600e3).toISOString().slice(0,10); }
+  function addDays(day, n){ return new Date(Date.parse(day + 'T00:00:00Z') + n*DAY).toISOString().slice(0,10); }
+  function diffDays(a, b){ return Math.round((Date.parse(b+'T00:00:00Z') - Date.parse(a+'T00:00:00Z'))/DAY); }
+
+  function emptyData(){ const d = { version: 1 }; KEYS.forEach(k => d[k] = []); return d; }
+  function normalize(d){
+    d = (d && typeof d === 'object') ? d : {};
+    d.version = d.version || 1;
+    KEYS.forEach(k => { if(!Array.isArray(d[k])) d[k] = []; });
+    return d;
+  }
+  function newId(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  const findAch = (d, id) => d.achievements.find(a => a.id === id);
+  const findCh  = (d, id) => d.challenges.find(c => c.id === id);
+  const grantFor = (d, id) => d.grants.find(g => g.achId === id);
+  const rightFor = (d, id) => d.rights.find(r => r.challengeId === id);
+
+  function isValidGrant(g, today){ return !!g && (!g.expires || today <= g.expires); }
+  function held(d, achId, today){ return isValidGrant(grantFor(d, achId), today); }
+  function inPeriod(p, today){ return !p || ((!p.from || today >= p.from) && (!p.to || today <= p.to)); }
+  function missing(d, requires, today){ return (requires || []).filter(id => !held(d, id, today)); }
+
+  // 実績の状態:got(手に入れた) / open(今目指せる) / locked(鍵がかかっている)
+  function achStatus(d, a, today){
+    const g = grantFor(d, a.id);
+    if(g){
+      const valid = isValidGrant(g, today);
+      const left = g.expires ? diffDays(today, g.expires) : null;
+      return { state: 'got', grant: g, expired: !valid, near: valid && left !== null && left <= NEAR_DAYS, left, missing: [] };
+    }
+    const miss = missing(d, a.requires, today);
+    const ok = miss.length === 0 && inPeriod(a.period, today);
+    return { state: ok ? 'open' : 'locked', missing: miss, outOfPeriod: !inPeriod(a.period, today) };
+  }
+
+  // 挑戦権の状態
+  function challengeStatus(d, c, today){
+    const r = rightFor(d, c.id);
+    if(r){
+      const usedUp = r.left !== null && r.left <= 0;
+      const expired = !!r.expires && today > r.expires;
+      const last = r.log.length ? r.log[r.log.length - 1].day : null;
+      const nextDay = (last && c.cooldownDays) ? addDays(last, c.cooldownDays) : null;
+      return { state: 'got', right: r, usedUp, expired, nextDay, waiting: !!nextDay && today < nextDay, missing: [] };
+    }
+    const miss = missing(d, c.requires, today);
+    return { state: (miss.length === 0 && inPeriod(c.period, today)) ? 'open' : 'locked', missing: miss };
+  }
+
+  function canApply(d, achId, today){
+    const a = findAch(d, achId);
+    if(!a) return { ok: false, reason: 'その実績はありません' };
+    if(d.reviews.some(r => r.kind === 'apply' && r.target === achId && r.status === 'pending'))
+      return { ok: false, reason: '審査を待っている申請があります' };
+    const g = grantFor(d, achId);
+    if(g){
+      if(!a.renewDays) return { ok: false, reason: 'もう手に入れています' };
+      return { ok: true, renewal: true };
+    }
+    if(!inPeriod(a.period, today)) return { ok: false, reason: '申請できる期間ではありません' };
+    const miss = missing(d, a.requires, today);
+    if(miss.length) return { ok: false, reason: '必要実績がそろっていません(' + miss.map(id => (findAch(d,id)||{}).name || id).join('、') + ')' };
+    return { ok: true, renewal: false };
+  }
+
+  function submitApplication(d, { achId, evidence, today }){
+    const c = canApply(d, achId, today);
+    if(!c.ok) throw new Error(c.reason);
+    if(!evidence || !evidence.trim()) throw new Error('証拠を書いてください');
+    const r = { id: newId('r-'), day: today, kind: 'apply', target: achId, renewal: c.renewal, evidence: evidence.trim(), status: 'pending' };
+    d.reviews.push(r);
+    return r;
+  }
+
+  const posInt = v => { if(v === '' || v === null || v === undefined) return null; const n = Number(v); return Number.isFinite(n) && n >= 1 ? Math.floor(n) : NaN; };
+  function cleanPeriod(p){ if(!p) return null; const from = p.from || null, to = p.to || null; return (from || to) ? { from, to } : null; }
+
+  function cleanDef(type, raw){
+    const def = {
+      name: String(raw.name || '').trim(),
+      fields: [...new Set(raw.fields || [])],
+      condition: String(raw.condition || '').trim(),
+      requires: [...new Set(raw.requires || [])],
+      period: cleanPeriod(raw.period),
+      art: raw.art || null,
+    };
+    if(type === 'achievement'){ def.renewDays = posInt(raw.renewDays); }
+    else { def.uses = posInt(raw.uses); def.cooldownDays = posInt(raw.cooldownDays); def.validDays = posInt(raw.validDays); }
+    return def;
+  }
+
+  function hasCycle(achs){
+    const map = new Map(achs.map(a => [a.id, a.requires || []]));
+    const seen = new Map(); // 1:たどっている 2:済み
+    const visit = id => {
+      if(seen.get(id) === 1) return true;
+      if(seen.get(id) === 2) return false;
+      seen.set(id, 1);
+      for(const n of (map.get(id) || [])) if(visit(n)) return true;
+      seen.set(id, 2); return false;
+    };
+    return [...map.keys()].some(visit);
+  }
+
+  function validateDef(d, type, def, id){
+    const errs = [];
+    if(!def.name) errs.push('名前がありません');
+    if(!def.condition) errs.push('達成条件がありません');
+    const list = type === 'achievement' ? d.achievements : d.challenges;
+    if(list.some(x => x.name === def.name && x.id !== id)) errs.push('同じ名前のものがあります');
+    def.requires.forEach(r => { if(!findAch(d, r)) errs.push('必要実績に、ない実績が入っています'); });
+    if(type === 'challenge' && def.requires.length === 0) errs.push('挑戦権には必要実績が1つ以上いります');
+    if(type === 'achievement' && id && def.requires.includes(id)) errs.push('自分自身を必要実績にはできません');
+    if(def.period && def.period.from && def.period.to && def.period.from > def.period.to) errs.push('期間の始まりが終わりより後です');
+    ['renewDays','uses','cooldownDays','validDays'].forEach(k => { if(Number.isNaN(def[k])) errs.push('日数・回数は1以上の数で書いてください'); });
+    if(type === 'achievement'){
+      const after = d.achievements.filter(a => a.id !== id).concat([{ id: id || '__new', requires: def.requires }]);
+      if(hasCycle(after)) errs.push('必要実績がぐるっと回ってつながっています');
+    }
+    return [...new Set(errs)];
+  }
+
+  function proposeRule(d, { op, type, id, def: raw, note, today }){
+    const def = cleanDef(type, raw);
+    let before = null;
+    if(op === 'edit'){
+      const cur = type === 'achievement' ? findAch(d, id) : findCh(d, id);
+      if(!cur) throw new Error('直す対象が見つかりません');
+      before = clone(cur);
+    }
+    const errs = validateDef(d, type, def, op === 'edit' ? id : null);
+    if(errs.length) throw new Error(errs.join('/'));
+    const r = { id: newId('r-'), day: today, kind: 'rule', target: op === 'edit' ? id : null,
+      content: { op, type, id: op === 'edit' ? id : null, def, before }, note: String(note || '').trim(), status: 'pending' };
+    d.reviews.push(r);
+    return r;
+  }
+
+  // 条件がそろった挑戦権を渡す(一度得たものは取り上げない)
+  function checkRights(d, today){
+    const got = [];
+    d.challenges.forEach(c => {
+      if(rightFor(d, c.id)) return;
+      if(!inPeriod(c.period, today)) return;
+      if(!c.requires.length || missing(d, c.requires, today).length) return;
+      const r = { challengeId: c.id, day: today, left: c.uses ?? null, expires: c.validDays ? addDays(today, c.validDays) : null, log: [] };
+      d.rights.push(r); got.push(c.id);
+    });
+    return got;
+  }
+
+  function decide(d, reviewId, { approve, reason, today }){
+    const r = d.reviews.find(x => x.id === reviewId);
+    if(!r) throw new Error('その審査は見つかりません');
+    if(r.status !== 'pending') throw new Error('この審査はもう決まっています');
+    if(!reason || !reason.trim()) throw new Error('理由を書いてください');
+    const out = { granted: null, newRights: [], ruleId: null };
+    if(approve){
+      if(r.kind === 'apply'){
+        const a = findAch(d, r.target);
+        if(!a) throw new Error('申請された実績が、もうありません');
+        const g = grantFor(d, a.id);
+        const expires = a.renewDays ? addDays(today, a.renewDays) : null;
+        if(g){
+          if(!r.renewal || !a.renewDays) throw new Error('もう手に入れています');
+          g.renewals.push({ day: today, reviewId: r.id, evidence: r.evidence });
+          g.expires = expires;
+        } else {
+          const miss = missing(d, a.requires, today);
+          if(miss.length) throw new Error('必要実績がそろっていないので認められません');
+          d.grants.push({ achId: a.id, day: today, evidence: r.evidence, reviewId: r.id, expires, renewals: [] });
+        }
+        out.granted = { achId: a.id, renewal: !!g };
+      } else {
+        const c = r.content;
+        const errs = validateDef(d, c.type, c.def, c.op === 'edit' ? c.id : null);
+        if(errs.length) throw new Error('今のルールでは認められません:' + errs.join('/'));
+        const list = c.type === 'achievement' ? d.achievements : d.challenges;
+        let id = c.id, before = null;
+        if(c.op === 'add'){
+          id = newId(c.type === 'achievement' ? 'a-' : 'c-');
+          list.push(Object.assign({ id }, clone(c.def)));
+        } else {
+          const cur = list.find(x => x.id === id);
+          if(!cur) throw new Error('直す対象が、もうありません');
+          before = clone(cur);
+          Object.assign(cur, clone(c.def), { id });
+        }
+        d.rules.push({ day: today, reviewId: r.id, op: c.op, type: c.type, id, before, after: clone(list.find(x => x.id === id)) });
+        out.ruleId = id;
+      }
+      out.newRights = checkRights(d, today);
+    }
+    r.status = approve ? 'approved' : 'returned';
+    r.reason = reason.trim();
+    r.decidedDay = today;
+    return out;
+  }
+
+  return { VERSION_DATA: 1, NEAR_DAYS, taskDay, addDays, diffDays, emptyData, normalize, clone,
+    findAch, findCh, grantFor, rightFor, held, inPeriod, missing, achStatus, challengeStatus,
+    canApply, submitApplication, cleanDef, validateDef, hasCycle, proposeRule, checkRights, decide };
+})();
+
+/* ===================== GitHub との読み書き ===================== */
+const CFG_KEY = 'eiten.cfg';
+function loadCfg(){ try{ return Object.assign({ owner:'nisenonamae', repo:'notion-daily', branch:'main', token:'' }, JSON.parse(localStorage.getItem(CFG_KEY) || '{}')); }catch(e){ return { owner:'nisenonamae', repo:'notion-daily', branch:'main', token:'' }; } }
+function saveCfg(c){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(c)); }catch(e){} }
+
+const b64enc = s => btoa(unescape(encodeURIComponent(s)));
+const b64dec = s => decodeURIComponent(escape(atob(String(s).replace(/\s/g, ''))));
+
+async function gh(method, path, body){
+  const c = S.cfg;
+  let url = `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${path}`;
+  if(method === 'GET') url += `?ref=${encodeURIComponent(c.branch)}&t=${Date.now()}`;
+  const headers = { Accept: 'application/vnd.github+json' };
+  if(c.token) headers.Authorization = 'Bearer ' + c.token;
+  if(body) headers['Content-Type'] = 'application/json';
+  return fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+}
+async function readJson(path){
+  const r = await gh('GET', path);
+  if(r.status === 404) return { json: null, sha: null };
+  if(!r.ok) throw new Error(`読み込めませんでした(${path}:${r.status})`);
+  const j = await r.json();
+  return { json: JSON.parse(b64dec(j.content)), sha: j.sha };
+}
+async function reloadData(){
+  const { json, sha } = await readJson(PATHS.data);
+  S.data = E.normalize(json); S.sha = sha;
+}
+// 書き込み:sha を付けて出し、ぶつかったら読み直して最大3回やり直す
+async function save(mutator, message){
+  for(let attempt = 0; attempt <= 3; attempt++){
+    const draft = E.clone(S.data);
+    const result = mutator(draft);
+    const body = { message: '栄典: ' + message, content: b64enc(JSON.stringify(draft, null, 1) + '\n'), branch: S.cfg.branch };
+    if(S.sha) body.sha = S.sha;
+    const r = await gh('PUT', PATHS.data, body);
+    if(r.ok){ const j = await r.json(); S.sha = j.content.sha; S.data = draft; return result; }
+    if(r.status === 409 || r.status === 422){ await reloadData(); continue; }
+    throw new Error(`書き込めませんでした(${r.status})`);
+  }
+  throw new Error('ほかの書き込みとぶつかり続けたので、書き込みをやめました。読み込み直してから、もう一度やってください');
+}
+async function loadAll(){
+  setStatus('読み込み中…');
+  await reloadData();
+  try{
+    const m = await readJson(PATHS.ministries);
+    S.ministries = parseMinistries(m.json);
+  }catch(e){ S.ministries = []; }
+  S.loaded = true;
+  setStatus('読み込みました(' + E.taskDay() + ')');
+}
+function parseMinistries(j){
+  if(!j) return [];
+  const arr = Array.isArray(j) ? j : (j.ministries || j.list || Object.values(j));
+  return (Array.isArray(arr) ? arr : []).filter(m => m && typeof m === 'object')
+    .map((m, i) => ({ tag: m.tag || m.id, name: m.name || m.label || m.tag || m.id, order: m.order ?? m['順番'] ?? i }))
+    .filter(m => m.tag).sort((a, b) => a.order - b.order);
+}
+
+/* ===================== 画面 ===================== */
+const S = { cfg: loadCfg(), data: E.emptyData(), sha: null, ministries: [], tab: 'list', field: 'all', ruleDraft: null, loaded: false, busy: false };
+const TABS = [['tree','樹形図'],['list','一覧'],['review','審査会議'],['settings','設定'],['studio','工房']];
+const $ = s => document.querySelector(s);
+const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const today = () => E.taskDay();
+const fieldName = tag => (S.ministries.find(m => m.tag === tag) || {}).name || tag;
+const achName = id => (E.findAch(S.data, id) || {}).name || '(なくなった実績)';
+const chName = id => (E.findCh(S.data, id) || {}).name || '(なくなった挑戦権)';
+const fmtDay = s => s ? s.replace(/^(\d+)-0?(\d+)-0?(\d+)$/, '$1年$2月$3日') : '';
+const fmtPeriod = p => !p ? 'いつでも' : `${p.from ? fmtDay(p.from) : ''}〜${p.to ? fmtDay(p.to) : ''}`;
+
+function setStatus(t){ const el = $('#c-status'); if(el) el.textContent = t; }
+let toastTimer;
+function toast(msg, err){
+  const t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = '', err ? 6000 : 3500);
+}
+
+function hueOf(tag){ let x = 0; for(const c of String(tag || '')) x = (x * 31 + c.charCodeAt(0)) % 360; return x; }
+// 工房ができるまでの仮の勲章(分野の色の綬と、頭文字の円章)
+function medalSvg(a, mode, size){
+  size = size || 84;
+  const hue = hueOf((a.fields || [])[0]);
+  const ch = h((a.name || '?').trim().charAt(0));
+  return `<svg class="medal m-${mode}" viewBox="0 0 100 120" width="${size}" height="${Math.round(size*1.2)}" aria-hidden="true">
+<path d="M26 0h20l12 44H38z" fill="hsl(${hue} 42% 36%)"/><path d="M54 0h20L62 44H42z" fill="hsl(${hue} 42% 28%)"/>
+<circle cx="50" cy="78" r="34" fill="#b08a3e"/><circle cx="50" cy="78" r="27" fill="#c9a55a" stroke="#f3e6c4" stroke-width="1.5"/>
+<text x="50" y="89" text-anchor="middle" font-size="30" font-family="Shippori Mincho,serif" font-weight="700" fill="#3a2a0c">${ch}</text></svg>`;
+}
+
+function renderTabs(){
+  $('#tabs .in').innerHTML = TABS.map(([k, n]) =>
+    `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${n}</button>`).join('');
+}
+function render(){
+  renderTabs();
+  const m = $('#main');
+  if(!S.loaded && !S.cfg.token){
+    m.innerHTML = `<div class="empty">右上の「接続」から、リポジトリとトークンを入れてください。データは <b>${h(PATHS.data)}</b> に置きます。</div>`;
+    return;
+  }
+  m.innerHTML = ({ tree: renderLater('樹形図', 3), list: renderList, review: renderReview, settings: renderSettings, studio: renderLater('工房', 4) }[S.tab])();
+}
+function renderLater(name, step){
+  return () => `<h2>${name}</h2><div class="empty">この画面は、作る順番の${step}番目で作ります。今の版では、設定・審査会議・一覧が使えます。</div>`;
+}
+
+function fieldChips(){
+  const tags = [...new Set([...S.ministries.map(m => m.tag), ...S.data.achievements.flatMap(a => a.fields), ...S.data.challenges.flatMap(c => c.fields)])];
+  return `<div class="chips"><button class="chip" data-act="field" data-v="all" aria-pressed="${S.field === 'all'}">すべて</button>` +
+    tags.map(t => `<button class="chip" data-act="field" data-v="${h(t)}" aria-pressed="${S.field === t}">${h(fieldName(t))}</button>`).join('') + '</div>';
+}
+const inField = x => S.field === 'all' || (x.fields || []).includes(S.field);
+const tags = fs => (fs || []).map(t => `<span class="tag">${h(fieldName(t))}</span>`).join('') || '<span class="note">分野なし</span>';
+const reqList = (rs, t) => (rs || []).length ? rs.map(id => `${h(achName(id))}${E.held(S.data, id, t) ? '(持っている)' : '(まだ)'}`).join('、') : 'なし';
+
+/* ---- 一覧 ---- */
+function renderList(){
+  const t = today(), d = S.data;
+  const achs = d.achievements.filter(inField);
+  const shelf = achs.length ? achs.map(a => {
+    const st = E.achStatus(d, a, t);
+    if(st.state !== 'got') return `<div class="slot off">${medalSvg(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}</div></div>`;
+    const mode = st.expired ? 'expired' : st.near ? 'near' : 'got';
+    const g = st.grant;
+    const sub = [`${fmtDay(g.day)}認定`];
+    if(g.expires) sub.push(st.expired ? '期限切れ・更新の申請を' : `更新期限 ${fmtDay(g.expires)}`);
+    return `<div class="slot">${medalSvg(a, mode)}<div class="nm">${h(a.name)}</div><div class="sm">${sub.map(h).join('<br>')}</div></div>`;
+  }).join('') : '';
+  const rights = d.rights.filter(r => { const c = E.findCh(d, r.challengeId); return c && inField(c); });
+  const rightsHtml = rights.length ? rights.map(r => {
+    const c = E.findCh(d, r.challengeId), st = E.challengeStatus(d, c, t);
+    const bits = [`${fmtDay(r.day)}に得た`, r.left === null ? '回数は無制限' : `残り${r.left}回`];
+    bits.push(r.expires ? (st.expired ? '有効期限が切れています' : `有効期限 ${fmtDay(r.expires)}`) : '有効期限なし');
+    if(st.nextDay) bits.push(st.waiting ? `${fmtDay(st.nextDay)}から再挑戦できる` : '再挑戦できる');
+    const off = st.usedUp || st.expired;
+    return `<div class="card"><div class="door${off ? ' off' : ''}" aria-hidden="true"></div><div><h3>${h(c.name)}</h3><div class="note" style="margin:0">${bits.map(h).join('/')}</div></div></div>`;
+  }).join('') : '<div class="empty">まだ挑戦権はありません。必要実績をそろえると、ここに並びます。</div>';
+  return `<h2>手に入れた実績</h2>${fieldChips()}` +
+    (shelf ? `<div class="shelf">${shelf}</div>` : '<div class="empty">まだ実績が決まっていません。審査会議で実績を足すと、ここに影が並びます。</div>') +
+    `<h2>持っている挑戦権</h2><div class="rights">${rightsHtml}</div>`;
+}
+
+/* ---- 設定(見るだけ) ---- */
+function renderSettings(){
+  const d = S.data, t = today();
+  const achs = d.achievements.filter(inField), chs = d.challenges.filter(inField);
+  const achHtml = achs.map(a => `<article class="def" id="def-${h(a.id)}">
+    <div class="art">${medalSvg(a, E.achStatus(d, a, t).state === 'got' ? 'got' : 'shadow', 56)}</div>
+    <div><h3>${h(a.name)}</h3><dl>
+      <dt>分野</dt><dd>${tags(a.fields)}</dd>
+      <dt>達成条件</dt><dd>${h(a.condition)}</dd>
+      <dt>必要実績</dt><dd>${reqList(a.requires, t)}</dd>
+      <dt>更新制</dt><dd>${a.renewDays ? `${a.renewDays}日ごとに再審査` : 'なし'}</dd>
+      <dt>申請できる期間</dt><dd>${h(fmtPeriod(a.period))}</dd>
+    </dl></div>
+    <div class="acts"><button class="btn line small" data-act="propose-edit" data-type="achievement" data-id="${h(a.id)}">変更を申し出る</button></div>
+  </article>`).join('');
+  const chHtml = chs.map(c => `<article class="def" id="def-${h(c.id)}">
+    <div class="art"><div class="door${E.rightFor(d, c.id) ? '' : ' off'}" aria-hidden="true"></div></div>
+    <div><h3>${h(c.name)}</h3><dl>
+      <dt>分野</dt><dd>${tags(c.fields)}</dd>
+      <dt>達成条件</dt><dd>${h(c.condition)}</dd>
+      <dt>必要実績</dt><dd>${reqList(c.requires, t)}</dd>
+      <dt>回数</dt><dd>${c.uses ? `${c.uses}回まで` : '無制限'}</dd>
+      <dt>再挑戦までの間</dt><dd>${c.cooldownDays ? `${c.cooldownDays}日` : 'なし'}</dd>
+      <dt>有効期限</dt><dd>${c.validDays ? `得てから${c.validDays}日` : 'なし'}</dd>
+      <dt>得られる期間</dt><dd>${h(fmtPeriod(c.period))}</dd>
+    </dl></div>
+    <div class="acts"><button class="btn line small" data-act="propose-edit" data-type="challenge" data-id="${h(c.id)}">変更を申し出る</button></div>
+  </article>`).join('');
+  return `<h2>設定</h2><p class="note">ここでは直接変えられません。変えたいときは「申し出る」から審査会議に出し、認められたものだけが反映されます。</p>
+    <div class="acts"><button class="btn small" data-act="propose-add" data-type="achievement">実績を足すことを申し出る</button>
+    <button class="btn small" data-act="propose-add" data-type="challenge">挑戦権を足すことを申し出る</button></div>
+    ${fieldChips()}
+    <h2>実績</h2>${achHtml || '<div class="empty">実績はまだありません。</div>'}
+    <h2>挑戦権</h2>${chHtml || '<div class="empty">挑戦権はまだありません。</div>'}`;
+}
+
+/* ---- 審査会議 ---- */
+const DEF_ROWS = {
+  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['renewDays','更新制'],['period','申請できる期間']],
+  challenge: [['name','名前'],['fields','分野'],['condition','達成条件'],['requires','必要実績'],['uses','回数'],['cooldownDays','再挑戦までの間'],['validDays','有効期限'],['period','得られる期間']],
+};
+function fmtVal(k, v){
+  if(k === 'fields') return (v || []).map(fieldName).join('、') || 'なし';
+  if(k === 'requires') return (v || []).map(achName).join('、') || 'なし';
+  if(k === 'period') return fmtPeriod(v);
+  if(k === 'renewDays') return v ? `${v}日ごとに再審査` : 'なし';
+  if(k === 'uses') return v ? `${v}回まで` : '無制限';
+  if(k === 'cooldownDays') return v ? `${v}日` : 'なし';
+  if(k === 'validDays') return v ? `得てから${v}日` : 'なし';
+  return v ?? '';
+}
+function diffTable(c){
+  return `<table class="diff"><tr><th></th>${c.before ? '<th>今</th>' : ''}<th>${c.before ? '変えたあと' : '中身'}</th></tr>` +
+    DEF_ROWS[c.type].map(([k, n]) => {
+      const a = c.before ? fmtVal(k, c.before[k]) : null, b = fmtVal(k, c.def[k]);
+      return `<tr class="${c.before && a !== b ? 'chg' : ''}"><th>${n}</th>${c.before ? `<td>${h(a)}</td>` : ''}<td>${h(b)}</td></tr>`;
+    }).join('') + '</table>';
+}
+const ruleTitle = c => `${c.type === 'achievement' ? '実績' : '挑戦権'}を${c.op === 'add' ? '足す' : '直す'}:${c.def.name}`;
+
+function renderReview(){
+  const d = S.data, t = today();
+  const opts = d.achievements.map(a => {
+    const c = E.canApply(d, a.id, t);
+    return `<option value="${h(a.id)}" ${c.ok ? '' : 'disabled'}>${h(a.name)}${c.ok ? (c.renewal ? '(更新)' : '') : '—' + h(c.reason)}</option>`;
+  }).join('');
+  const pending = d.reviews.filter(r => r.status === 'pending');
+  const pendHtml = pending.length ? pending.map(r => {
+    const head = r.kind === 'apply'
+      ? `<h3>実績の${r.renewal ? '更新' : ''}申請:${h(achName(r.target))}</h3>
+         <dl class="note" style="margin:0"><dt>照らすルール(達成条件)</dt><dd style="margin:0 0 4px;color:var(--ink)">${h((E.findAch(d, r.target) || {}).condition)}</dd>
+         <dt>証拠</dt><dd style="margin:0;color:var(--ink);white-space:pre-wrap">${h(r.evidence)}</dd></dl>`
+      : `<h3>ルールの変更:${h(ruleTitle(r.content))}</h3>${diffTable(r.content)}${r.note ? `<div class="note">申し出の理由:${h(r.note)}</div>` : ''}`;
+    return `<div class="card pending">${head}<div class="note">${fmtDay(r.day)}に出された</div>
+      <label class="note" for="why-${r.id}">決めた理由</label><textarea id="why-${r.id}" placeholder="ルールに照らして、なぜ認める・差し戻すのか"></textarea>
+      <div class="acts"><button class="btn gilt" data-act="decide" data-id="${r.id}" data-ok="1">認める</button>
+      <button class="btn line" data-act="decide" data-id="${r.id}" data-ok="0">差し戻す</button></div></div>`;
+  }).join('') : '<div class="empty">審査を待っているものはありません。</div>';
+  const done = d.reviews.filter(r => r.status !== 'pending').slice().reverse();
+  const logHtml = done.length ? done.map(r => `<details class="log"><summary>${fmtDay(r.decidedDay)} <span class="st-${r.status}">${r.status === 'approved' ? '認めた' : '差し戻した'}</span> ${h(r.kind === 'apply' ? `申請:${achName(r.target)}${r.renewal ? '(更新)' : ''}` : ruleTitle(r.content))}</summary>
+    <div style="padding:6px 0 4px">${r.kind === 'apply' ? `<div class="note" style="white-space:pre-wrap">証拠:${h(r.evidence)}</div>` : diffTable(r.content) + (r.note ? `<div class="note">申し出の理由:${h(r.note)}</div>` : '')}
+    <div>理由:${h(r.reason)}</div><div class="note">${fmtDay(r.day)}に出され、${fmtDay(r.decidedDay)}に決まった</div></div></details>`).join('')
+    : '<div class="empty">まだ記録はありません。</div>';
+
+  return `<h2>実績を申請する</h2>
+    ${d.achievements.length ? `<div class="card form">
+      <label class="f">実績<select id="ap-ach"><option value="">選んでください</option>${opts}</select></label>
+      <label class="f">証拠(何をしたか、どこで確かめられるか)<textarea id="ap-evi"></textarea></label>
+      <div><button class="btn" data-act="apply">申請する</button></div></div>` : '<div class="empty">申請できる実績がまだありません。先に下の「ルールの変更を申し出る」で実績を足してください。</div>'}
+    <h2>審査を待っている</h2>${pendHtml}
+    <h2>ルールの変更を申し出る</h2>${S.ruleDraft ? ruleForm() : `<div class="acts">
+      <button class="btn small" data-act="propose-add" data-type="achievement">実績を足す</button>
+      <button class="btn small" data-act="propose-add" data-type="challenge">挑戦権を足す</button>
+      <span class="note" style="align-self:center">直すときは、設定の「変更を申し出る」から</span></div>`}
+    <h2>記録</h2>${logHtml}`;
+}
+
+function ruleForm(){
+  const r = S.ruleDraft, d = r.def, isA = r.type === 'achievement';
+  const fieldTags = [...new Set([...S.ministries.map(m => m.tag), ...(d.fields || [])])];
+  const fieldsHtml = fieldTags.length ? fieldTags.map(t => `<label><input type="checkbox" name="rf-field" value="${h(t)}" ${(d.fields || []).includes(t) ? 'checked' : ''}>${h(fieldName(t))}</label>`).join('')
+    : '<span class="note">省の一覧が読めていません</span>';
+  const others = S.data.achievements.filter(a => a.id !== r.id);
+  const reqHtml = others.length ? others.map(a => `<label><input type="checkbox" name="rf-req" value="${h(a.id)}" ${(d.requires || []).includes(a.id) ? 'checked' : ''}>${h(a.name)}</label>`).join('')
+    : '<span class="note">選べる実績がまだありません</span>';
+  const p = d.period || {};
+  const num = (id, label, v, hint) => `<label class="f">${label}<input type="number" min="1" id="${id}" value="${v ?? ''}" placeholder="${hint}"></label>`;
+  return `<div class="card form" id="rule-form">
+    <h3>${isA ? '実績' : '挑戦権'}を${r.op === 'add' ? '足す' : '直す'}</h3>
+    <label class="f">名前<input type="text" id="rf-name" value="${h(d.name)}"></label>
+    <div class="f note">分野<div class="checks">${fieldsHtml}</div></div>
+    <label class="f">達成条件<textarea id="rf-cond">${h(d.condition)}</textarea></label>
+    <div class="f note">必要実績${isA ? '' : '(この組み合わせを持つと得られる)'}<div class="checks">${reqHtml}</div></div>
+    ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに再審査)', d.renewDays, '空なら更新なし')}<span></span></div>`
+          : `<div class="two">${num('rf-uses', '回数', d.uses, '空なら無制限')}${num('rf-cool', '再挑戦までの日数', d.cooldownDays, '空ならなし')}</div>
+             <div class="two">${num('rf-valid', '有効期限(得てから何日)', d.validDays, '空ならなし')}<span></span></div>`}
+    <div class="two"><label class="f">${isA ? '申請できる' : '得られる'}期間の始まり<input type="date" id="rf-from" value="${h(p.from || '')}"></label>
+      <label class="f">期間の終わり<input type="date" id="rf-to" value="${h(p.to || '')}"></label></div>
+    <label class="f">申し出の理由<textarea id="rf-note">${h(r.note || '')}</textarea></label>
+    <div class="acts"><button class="btn" data-act="rule-submit">審査会議に出す</button><button class="btn line" data-act="rule-cancel">やめる</button></div>
+  </div>`;
+}
+function readRuleForm(){
+  const v = id => ($('#' + id) || {}).value || '';
+  const checked = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value);
+  const raw = { name: v('rf-name'), fields: checked('rf-field'), condition: v('rf-cond'), requires: checked('rf-req'),
+    period: { from: v('rf-from'), to: v('rf-to') }, art: S.ruleDraft.def.art || null };
+  if(S.ruleDraft.type === 'achievement') raw.renewDays = v('rf-renew');
+  else { raw.uses = v('rf-uses'); raw.cooldownDays = v('rf-cool'); raw.validDays = v('rf-valid'); }
+  return { raw, note: v('rf-note') };
+}
+
+/* ---- 操作 ---- */
+async function commit(fn, message, okMsg){
+  if(!S.cfg.token){ toast('先に接続してください', true); return null; }
+  if(S.busy) return null;
+  S.busy = true;
+  let res = null;
+  try{ res = await save(fn, message); if(okMsg) toast(okMsg(res)); }
+  catch(err){ toast(err.message, true); }
+  finally{ S.busy = false; }
+  render();
+  return res;
+}
+
+const Actions = {
+  async apply(){
+    const achId = $('#ap-ach').value, evidence = $('#ap-evi').value;
+    if(!achId){ toast('実績を選んでください', true); return; }
+    const t = today();
+    return commit(d => E.submitApplication(d, { achId, evidence, today: t }), `申請 ${achName(achId)}`, () => '申請しました。審査を待っています');
+  },
+  async decide(id, ok){
+    const reason = ($('#why-' + id) || {}).value || '';
+    const t = today();
+    return commit(d => E.decide(d, id, { approve: ok, reason, today: t }), ok ? '審査で認めた' : '審査で差し戻した', res => {
+      if(!ok) return '差し戻しました';
+      const parts = [];
+      if(res.granted) parts.push(`「${achName(res.granted.achId)}」を${res.granted.renewal ? '更新' : '認定'}しました`);
+      if(res.ruleId) parts.push('ルールの変更を反映しました');
+      if(res.newRights.length) parts.push('挑戦権を得ました:' + res.newRights.map(chName).join('、'));
+      return parts.join('。');
+    });
+  },
+  async ruleSubmit(){
+    const { raw, note } = readRuleForm();
+    const r = S.ruleDraft, t = today();
+    r.def = Object.assign({}, r.def, raw); r.note = note; // 失敗しても書いたものを残す
+    const res = await commit(d => E.proposeRule(d, { op: r.op, type: r.type, id: r.id, def: raw, note, today: t }), 'ルールの変更を申し出た', () => '審査会議に出しました');
+    if(res){ S.ruleDraft = null; render(); }
+    return res;
+  },
+  startRule(op, type, id){
+    const cur = id ? (type === 'achievement' ? E.findAch(S.data, id) : E.findCh(S.data, id)) : null;
+    S.ruleDraft = { op, type, id: id || null, def: cur ? E.clone(cur) : { name: '', fields: S.field !== 'all' ? [S.field] : [], condition: '', requires: [], period: null }, note: '' };
+    S.tab = 'review'; render();
+    const f = $('#rule-form'); if(f && f.scrollIntoView) f.scrollIntoView({ block: 'start' });
+  },
+};
+
+document.addEventListener('click', e => {
+  const tb = e.target.closest('[data-tab]');
+  if(tb){ S.tab = tb.dataset.tab; render(); return; }
+  const b = e.target.closest('[data-act]');
+  if(!b) return;
+  const act = b.dataset.act;
+  if(act === 'field'){ S.field = b.dataset.v; render(); }
+  else if(act === 'apply') Actions.apply();
+  else if(act === 'decide') Actions.decide(b.dataset.id, b.dataset.ok === '1');
+  else if(act === 'propose-add') Actions.startRule('add', b.dataset.type);
+  else if(act === 'propose-edit') Actions.startRule('edit', b.dataset.type, b.dataset.id);
+  else if(act === 'rule-cancel'){ S.ruleDraft = null; render(); }
+  else if(act === 'rule-submit') Actions.ruleSubmit();
+});
+
+function initConn(){
+  $('#ver').textContent = VERSION;
+  ['owner','repo','branch','token'].forEach(k => $('#c-' + k).value = S.cfg[k] || '');
+  const panel = $('#conn'), btn = $('#connBtn');
+  btn.addEventListener('click', () => { panel.hidden = !panel.hidden; btn.setAttribute('aria-expanded', String(!panel.hidden)); });
+  $('#c-save').addEventListener('click', async () => {
+    ['owner','repo','branch','token'].forEach(k => S.cfg[k] = $('#c-' + k).value.trim());
+    saveCfg(S.cfg);
+    try{ await loadAll(); toast('読み込みました'); }catch(err){ setStatus(''); toast(err.message, true); }
+    render();
+  });
+  if(!S.cfg.token) panel.hidden = false;
+}
+
+const App = { S, E, Actions, render, loadAll, save, VERSION };
+window.App = App;
+initConn();
+render();
+App.ready = (S.cfg.token ? loadAll().catch(err => toast(err.message, true)) : Promise.resolve()).then(render);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
