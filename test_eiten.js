@@ -307,65 +307,101 @@ const DATA = 'roadmap/apps/eiten/data.json';
     ok(/接続してください/.test(e.doc.body.textContent), '未接続なら案内');
   }
 
-  // ===== 進捗・更新の概要・効果音(r7) =====
+  // ===== 進捗・更新の概要・効果音(r8) =====
   {
     console.log('進捗・更新の概要・効果音');
     const repo = makeRepo();
     repo.put('roadmap/gov/ministries.json', [{ tag: 'def', name: '防衛省', order: 1 }]);
+    // 前の版の「今の数(value)」で書いた記録も入れておく
     repo.put(DATA, { version: 1, achievements: [{ id: 'a1', name: '千里の道も一歩から', fields: [], condition: '定着10個', requires: [], goal: 10, unit: '個' },
-      { id: 'a2', name: '数えない実績', fields: [], condition: 'x', requires: [] }], challenges: [], parts: [], arts: [], grants: [], rights: [], reviews: [], rules: [], progress: [] });
+      { id: 'a2', name: '数えない実績', fields: [], condition: 'x', requires: [] }], challenges: [], parts: [], arts: [], grants: [], rights: [], reviews: [], rules: [],
+      progress: [{ id: 'g-old1', achId: 'a1', day: '2026-10-07', value: 3, summary: '前の版' }, { id: 'g-old2', achId: 'a1', day: '2026-10-08', value: 5, summary: '前の版2' }] });
     const dom = await boot(repo);
     const w = dom.window, doc = w.document, App = w.App, { E } = App;
     w.confirm = () => true;
+    // 前の版の記録は「足す数」に直る
+    ok(App.S.data.progress.map(e => e.add).join() === '3,2' && E.progressOf(App.S.data, 'a1').value === 5, '前の版の「今の数」を「足す数」に直して読む');
     // 決まり
     const d = E.clone(App.S.data);
-    throws(() => E.addProgress(d, { achId: 'a1', value: '', summary: ' ', today: '2026-10-09' }), /今の数か/, '何も書かないと書けない');
-    throws(() => E.addProgress(d, { achId: 'a1', value: '-1', summary: 'x', today: '2026-10-09' }), /0以上/, '負の数はだめ');
-    E.addProgress(d, { achId: 'a1', value: '4', summary: '4つ定着', today: '2026-10-08' });
-    E.addProgress(d, { achId: 'a1', value: '', summary: '数は変わらず、メモだけ', today: '2026-10-09' });
-    const p = E.progressOf(d, 'a1');
-    ok(p.value === 4 && p.goal === 10 && Math.abs(p.pct - .4) < 1e-9 && p.entries.length === 2 && !p.reached, '数は最後に書いた数・概要だけの記録も残る');
-    throws(() => E.addProgress(d, { achId: 'a2', value: '', summary: '', today: '2026-10-09' }), /更新の概要を/, '目標のない実績は概要が要る');
+    throws(() => E.addProgress(d, { achId: 'a1', add: '', summary: ' ', today: '2026-10-09' }), /足す数か/, '何も書かないと書けない');
+    E.addProgress(d, { achId: 'a1', add: '2', summary: '2つ定着', today: '2026-10-09' });
+    ok(E.progressOf(d, 'a1').value === 7 && Math.abs(E.progressOf(d, 'a1').pct - .7) < 1e-9, '足す数を積む');
+    E.addProgress(d, { achId: 'a1', add: '-1', summary: '1つ数えまちがい', today: '2026-10-09' });
+    ok(E.progressOf(d, 'a1').value === 6, 'マイナスで減らせる');
+    throws(() => E.addProgress(d, { achId: 'a2', pct: '120', summary: 'x', today: '2026-10-09' }), /0〜100/, '%は0〜100');
+    throws(() => E.addProgress(d, { achId: 'a2', pct: '', summary: '', today: '2026-10-09' }), /進み具合/, '数えない実績は%か概要が要る');
+    E.addProgress(d, { achId: 'a2', pct: '30', summary: '下調べ', today: '2026-10-08' });
+    E.addProgress(d, { achId: 'a2', pct: '', summary: 'メモだけ', today: '2026-10-09' });
+    ok(Math.abs(E.progressOf(d, 'a2').pct - .3) < 1e-9 && E.progressOf(d, 'a2').value === null, '数えない実績は自分で書いた%(最後のもの)');
+    const g = d.progress.find(e => e.summary === '下調べ');
+    E.updateProgress(d, g.id, { pct: '45', summary: '下調べ(直した)', day: '2026-10-10' });
+    ok(Math.abs(E.progressOf(d, 'a2').pct - .45) < 1e-9 && d.progress[d.progress.length - 1].summary === '下調べ(直した)', '過去の記録を直せて、日付順に並び直る');
+    throws(() => E.updateProgress(d, g.id, { pct: 'x', summary: '' }), /0〜100|進み具合/, '直すときも確かめる');
+
     // 画面:樹形図から書く
+    ok(doc.getElementById('sndBtn') && /効果音/.test(doc.getElementById('sndBtn').textContent), '見出しに効果音の切り替え');
     click(w, '[data-tab="tree"]');
-    ok(doc.querySelector('.snd'), '効果音の切り替えがある');
     click(w, '[data-node="a:a1"]');
-    ok(/まだ書いていない|0 \/ 10個/.test(doc.getElementById('tree-detail').textContent), '進捗の欄が出る');
+    ok(/5 \/ 10個/.test(doc.getElementById('tree-detail').textContent), '進捗の欄が出る');
     click(w, '#tree-detail [data-act="prog-open"]');
-    doc.getElementById('pg-val').value = '7'; doc.getElementById('pg-sum').value = '習慣が7つ根付いた';
+    ok(doc.getElementById('pg-add').value === '1' && /今 5個/.test(doc.getElementById('tree-detail').textContent), '「足す数」を書く(初めは1)');
+    doc.getElementById('pg-add').value = '2'; doc.getElementById('pg-sum').value = '習慣が2つ根付いた';
     await App.Actions.progSave('a1'); await tick();
     const j = repo.json(DATA);
-    ok(j.progress.length === 1 && j.progress[0].value === 7 && j.progress[0].summary === '習慣が7つ根付いた', '進捗と更新の概要が書き込まれる');
-    ok(/7 \/ 10個/.test(doc.getElementById('tree-detail').textContent) && /習慣が7つ根付いた/.test(doc.getElementById('tree-detail').textContent), '棒と最新の概要が出る');
-    ok(doc.querySelector('[data-node="a:a1"] .nb').getAttribute('width') === '78.4', '樹形図の札にも進み具合の棒');
+    ok(j.progress.length === 3 && j.progress[2].add === 2 && j.progress[2].summary === '習慣が2つ根付いた' && j.progress.every(e => e.value === undefined), '足す数と更新の概要が書き込まれる');
+    ok(/7 \/ 10個/.test(doc.getElementById('tree-detail').textContent) && doc.querySelector('[data-node="a:a1"] .nb').getAttribute('width') === '78.4', '合計と棒が出る');
+    // 過去の記録を直す
+    click(w, '#tree-detail .phist [data-act="prog-edit"]');
+    ok(doc.getElementById('pe-add').value === '2' && doc.getElementById('pe-sum').value === '習慣が2つ根付いた' && doc.querySelector('#tree-detail .phist').open, '直す欄が開く');
+    doc.getElementById('pe-add').value = '5'; doc.getElementById('pe-sum').value = '5つ根付いた(数え直し)';
+    await App.Actions.progUpdate(App.S.progEdit); await tick();
+    ok(/10 \/ 10個/.test(doc.getElementById('tree-detail').textContent) && /達成した/.test(doc.getElementById('toast').textContent) === false, '直すと合計が変わる');
+    ok(repo.json(DATA).progress.find(e => e.summary === '5つ根付いた(数え直し)').add === 5, '直したものが書き込まれる');
+    // 数えない実績は%を書く
+    click(w, '[data-node="a:a2"]');
     click(w, '#tree-detail [data-act="prog-open"]');
-    doc.getElementById('pg-val').value = '10'; doc.getElementById('pg-sum').value = '10個に到達';
-    await App.Actions.progSave('a1'); await tick();
-    ok(/達成した/.test(doc.getElementById('toast').textContent), '目標に届くと知らせる');
+    ok(doc.getElementById('pg-pct') && !doc.getElementById('pg-add'), '数えない実績は%を書く欄');
+    doc.getElementById('pg-pct').value = '40'; doc.getElementById('pg-sum').value = '半分弱';
+    await App.Actions.progSave('a2'); await tick();
+    ok(/40%/.test(doc.getElementById('tree-detail').textContent) && doc.querySelector('[data-node="a:a2"] .nb'), '%で棒が出る');
     click(w, '[data-tab="settings"]');
-    ok(/10 \/ 10個/.test(doc.getElementById('def-a1').textContent) && /目標10個/.test(doc.getElementById('def-a1').textContent.replace(/\s/g, '')), '設定にも進捗と目標が出る');
-    click(w, '#def-a1 [data-act="prog-del"]'); await tick();
-    ok(repo.json(DATA).progress.length === 1, '記録を消せる');
+    ok(/40%/.test(doc.getElementById('def-a2').textContent) && /目標10個/.test(doc.getElementById('def-a1').textContent.replace(/\s/g, '')), '設定にも出る');
+    click(w, '#def-a2 [data-act="prog-del"]'); await tick();
+    ok(!repo.json(DATA).progress.some(e => e.achId === 'a2'), '記録を消せる');
     click(w, '[data-tab="list"]');
-    ok(/7 \/ 10個/.test(doc.querySelector('.shelf').textContent), '一覧の影にも進み具合');
-    // 効果音:音が出せない場所でも壊れない
-    click(w, '[data-tab="tree"]');
-    click(w, '[data-act="snd-toggle"]');
-    ok(doc.querySelector('.snd').getAttribute('aria-pressed') === 'false' && w.localStorage.getItem('eiten.sound') === 'off', '効果音を切れる');
-    // 鳴った回数を数える
+    ok(/10 \/ 10個/.test(doc.querySelector('.shelf').textContent), '一覧の影にも進み具合');
+
+    // 効果音:どこで鳴るか数える
+    const played = [];
+    ['click','tick','tap','page','write','ok','del','err','seal'].forEach(k => { const f = App.Snd[k]; App.Snd[k] = () => played.push(k); App.Snd['_' + k] = f; });
+    click(w, '[data-tab="settings"]');
+    click(w, '#def-a1 [data-act="prog-open"]');
+    doc.getElementById('pg-add').value = '1'; doc.getElementById('pg-sum').value = 'もう1つ';
+    click(w, '#def-a1 [data-act="prog-save"]'); await tick(); await tick();
+    click(w, '[data-tab="tree"]'); click(w, '[data-node="a:a1"]');
+    click(w, '[data-act="field"][data-v="all"]');
+    click(w, '[data-tab="studio"]'); click(w, '[data-act="st-add-shape"][data-v="circle"]');
+    App.Studio.savePart(); await tick();
+    ok(played.join() === 'page,tap,tap,write,page,click,tick,page,tap,err', '書く・タブ・ボタン・樹形図・まちがいで、それぞれ音が鳴る :: ' + played.join());
+    ['click','tick','tap','page','write','ok','del','err','seal'].forEach(k => App.Snd[k] = App.Snd['_' + k]);
+    // 音が出せない場所でも壊れず、切り替えられる
+    click(w, '#sndBtn');
+    ok(doc.getElementById('sndBtn').getAttribute('aria-pressed') === 'false' && w.localStorage.getItem('eiten.sound') === 'off', '効果音を切れる');
     let n = 0; w.AudioContext = function(){ n++; const node = () => ({ connect(){ }, start(){ }, stop(){ }, frequency: { value: 0, setValueAtTime(){ }, exponentialRampToValueAtTime(){ } }, gain: { value: 0, setValueAtTime(){ }, linearRampToValueAtTime(){ }, exponentialRampToValueAtTime(){ } }, Q: {} });
       return { state: 'running', currentTime: 0, sampleRate: 8000, destination: {}, createBuffer: (c, len) => ({ getChannelData: () => new Float32Array(len) }), createBufferSource: node, createBiquadFilter: node, createGain: node, createOscillator: node }; };
-    click(w, '[data-act="snd-toggle"]');
-    click(w, '[data-node="a:a2"]');
-    ok(n === 1, '樹形図を押すとカチッと鳴る(音の仕組みは1つだけ作る)');
+    App.S.st.dirty = false; click(w, '[data-tab="tree"]'); click(w, '[data-node="a:a1"]');
+    ok(n === 0, '切ってあれば鳴らない');
+    click(w, '#sndBtn');
+    ['click','tick','tap','page','write','ok','del','err','seal'].forEach(k => App.Snd[k]());
+    ok(n === 1, 'どの音も作れる(音の仕組みは1つだけ)');
     // 分野を名前で指定して取り込む
     click(w, '[data-tab="settings"]');
     doc.getElementById('imp-text').value = JSON.stringify({ eiten: 1, achievements: [{ id: 'a-mil', name: '軍事的才能の芽生え', fieldNames: ['防衛省', 'ない省'], condition: 'x', goal: 20, unit: '回' }] });
     click(w, '[data-act="import-read"]');
-    ok(/防衛省/.test(doc.querySelector('.importbox .card').textContent) && /見つからないので付けない/.test(doc.querySelector('.importbox .card').textContent) && /目標 20回/.test(doc.querySelector('.importbox .card').textContent), '見本に分野と目標が出る');
+    ok(/防衛省/.test(doc.querySelector('.importbox .card').textContent) && /見つからないので付けない/.test(doc.querySelector('.importbox .card').textContent), '見本に分野が出る');
     click(w, '[data-act="import-do"]'); await tick(); await tick();
     const mil = App.S.data.achievements.find(a => a.id === 'a-mil');
-    ok(mil && mil.fields.join() === 'def' && mil.goal === 20 && mil.unit === '回', '分野を名前で付けて取り込める');
+    ok(mil && mil.fields.join() === 'def' && mil.goal === 20, '分野を名前で付けて取り込める');
     w.close();
   }
 

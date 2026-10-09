@@ -1,5 +1,5 @@
 // 栄典:画面はネットを先に見て、つながらないときだけ手元の控えを出す
-const CACHE = 'eiten-2026-10-09-r7';
+const CACHE = 'eiten-2026-10-09-r8';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './embed.html'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

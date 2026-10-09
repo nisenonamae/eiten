@@ -30,7 +30,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 header{max-width:960px;margin:0 auto;padding:18px 16px 8px;display:flex;align-items:flex-end;gap:14px}
 h1{font-family:var(--mincho);font-weight:700;font-size:40px;letter-spacing:.18em;margin:0;line-height:1}
 .lead{margin:0 0 3px;color:var(--sub);font-size:13px}
-#connBtn{margin-left:auto}
+#sndBtn{margin-left:auto}
+#sndBtn[aria-pressed="false"]{color:var(--sub);border-style:dashed}
 
 #conn{max-width:960px;margin:0 auto 6px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:6px}
 #conn .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
@@ -202,7 +203,12 @@ textarea{min-height:70px;resize:vertical}
 .phist summary{cursor:pointer;color:var(--sub);font-size:13px;margin-top:6px}
 .phist ul{list-style:none;margin:4px 0 0;padding:0}
 .phist li{border-top:1px solid var(--line);padding:4px 0;display:flex;gap:4px;align-items:baseline}
-.phist .px{margin-left:auto;padding:0 6px}
+.phist .pbtns{margin-left:auto;display:flex;gap:4px;flex:none}
+.phist .ps{flex:1}
+.phist li.pedit{display:block}
+.def > div{min-width:0}
+.pform,.pform .f{min-width:0}
+.pform input,.pform textarea{min-width:0;max-width:100%;box-sizing:border-box}
 .hoi .prog{background:rgba(0,0,0,.22);border-color:#5d5843;color:#e9e1c6}
 .hoi .prog .pl,.hoi .pd,.hoi .phist summary{color:#b3aa8c}
 .hoi .plast{color:#f1e9cf}
@@ -213,8 +219,6 @@ textarea{min-height:70px;resize:vertical}
 .hoi .pform .f{color:#b3aa8c}
 .nb-bg{fill:#14140f}
 .nb{fill:#e3c46c}
-.snd{background:none;border:1px solid #6d6649;color:#d9cfae;border-radius:2px;font-size:12px;padding:2px 8px;cursor:pointer}
-.snd[aria-pressed="false"]{color:#8a8670;border-style:dashed}
 /* 取り込み */
 .importbox summary{cursor:pointer}
 .importbox textarea{margin-top:4px;font-size:12px;min-height:80px}
@@ -257,6 +261,7 @@ textarea{min-height:70px;resize:vertical}
     <h1>栄典</h1>
   </div>
   <p class="lead">実績と挑戦権</p>
+  <button id="sndBtn" class="btn line small" aria-pressed="true">効果音 オン</button>
   <button id="connBtn" class="btn line small" aria-expanded="false" aria-controls="conn">接続</button>
 </header>
 <section id="conn" hidden>
@@ -278,7 +283,7 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r7';
+const VERSION = '2026-10-09 r8';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
@@ -297,6 +302,12 @@ const E = (() => {
     d = (d && typeof d === 'object') ? d : {};
     d.version = d.version || 1;
     KEYS.forEach(k => { if(!Array.isArray(d[k])) d[k] = []; });
+    // 前の版の「今の数(value)」を「足す数(add)」に直す
+    const run = {};
+    d.progress.forEach(e => {
+      if(typeof e.value === 'number' && e.add === undefined){ e.add = e.value - (run[e.achId] || 0); run[e.achId] = e.value; delete e.value; }
+      else if(typeof e.add === 'number') run[e.achId] = (run[e.achId] || 0) + e.add;
+    });
     return d;
   }
   function newId(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -463,24 +474,51 @@ const E = (() => {
     if(p.parts.some(x => /^b-/.test(x.id)) || p.arts.some(x => /^ba-/.test(x.id))) throw new Error('最初からある部品と同じidは使えません');
     return p;
   }
-  // 進捗:数(目標があるとき)と更新の概要を、履歴として積む
+  // 進捗:目標のある実績は「足す数」を積み、目標のない実績は「%」を自分で書く。どちらも更新の概要を添えて履歴に残す
+  const numOrNull = v => (v === '' || v === null || v === undefined) ? null : Number(v);
   function progressOf(d, achId){
     const a = findAch(d, achId), entries = d.progress.filter(x => x.achId === achId);
-    const withNum = entries.filter(x => typeof x.value === 'number');
-    const value = withNum.length ? withNum[withNum.length - 1].value : null;
     const goal = a && a.goal ? a.goal : null;
-    return { entries, value, goal, unit: (a && a.unit) || '', pct: goal && value !== null ? Math.max(0, Math.min(1, value/goal)) : null, reached: !!goal && value !== null && value >= goal };
+    let total = 0, pctIn = null;
+    entries.forEach(e => { if(typeof e.add === 'number') total += e.add; if(typeof e.pct === 'number') pctIn = e.pct; });
+    const pct = goal ? Math.max(0, Math.min(1, total/goal)) : (pctIn === null ? null : Math.max(0, Math.min(1, pctIn/100)));
+    return { entries, goal, unit: (a && a.unit) || '', value: goal ? total : null, pctIn, pct, reached: pct !== null && pct >= 1 };
   }
-  function addProgress(d, { achId, value, summary, today }){
+  function cleanEntry(a, { add, pct, summary }){
+    const out = { summary: String(summary || '').trim() };
+    if(a.goal){
+      const v = numOrNull(add);
+      if(v !== null && !Number.isFinite(v)) throw new Error('足す数は数で書いてください');
+      if(v === null && !out.summary) throw new Error('足す数か、更新の概要を書いてください');
+      out.add = v;
+    } else {
+      const v = numOrNull(pct);
+      if(v !== null && (!Number.isFinite(v) || v < 0 || v > 100)) throw new Error('進み具合は0〜100%で書いてください');
+      if(v === null && !out.summary) throw new Error('進み具合(%)か、更新の概要を書いてください');
+      out.pct = v;
+    }
+    return out;
+  }
+  function addProgress(d, { achId, add, pct, summary, today }){
     const a = findAch(d, achId);
     if(!a) throw new Error('その実績はありません');
-    const v = (value === '' || value === null || value === undefined) ? null : Number(value);
-    if(v !== null && (!Number.isFinite(v) || v < 0)) throw new Error('数は0以上で書いてください');
-    const sum = String(summary || '').trim();
-    if(v === null && !sum) throw new Error(a.goal ? '今の数か、更新の概要を書いてください' : '更新の概要を書いてください');
-    const e = { id: newId('g-'), achId, day: today, value: v, summary: sum };
+    const e = Object.assign({ id: newId('g-'), achId, day: today }, cleanEntry(a, { add, pct, summary }));
     d.progress.push(e);
     return Object.assign({ entry: e }, progressOf(d, achId));
+  }
+  // 過去の記録を直す(日付・数または%・概要)
+  function updateProgress(d, entryId, { add, pct, summary, day }){
+    const e = d.progress.find(x => x.id === entryId);
+    if(!e) throw new Error('その記録は見つかりません');
+    const a = findAch(d, e.achId);
+    if(!a) throw new Error('その実績はありません');
+    const c = cleanEntry(a, { add, pct, summary });
+    if(day && !/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('日付の形がちがいます');
+    delete e.add; delete e.pct; delete e.value;
+    Object.assign(e, c);
+    if(day) e.day = day;
+    d.progress.sort((x, y) => x.day < y.day ? -1 : x.day > y.day ? 1 : 0);
+    return Object.assign({ entry: e }, progressOf(d, e.achId));
   }
   function removeProgress(d, entryId){
     const k = d.progress.findIndex(x => x.id === entryId);
@@ -522,7 +560,7 @@ const E = (() => {
 
   return { VERSION_DATA: 1, NEAR_DAYS, newId, taskDay, addDays, diffDays, emptyData, normalize, clone,
     findAch, findCh, grantFor, rightFor, held, inPeriod, missing, achStatus, challengeStatus,
-    canGrant, grant, ungrant, progressOf, addProgress, removeProgress, cleanDef, validateDef, hasCycle, saveDef, removeDef, parsePack, importPack, checkRights };
+    canGrant, grant, ungrant, progressOf, addProgress, updateProgress, removeProgress, cleanDef, validateDef, hasCycle, saveDef, removeDef, parsePack, importPack, checkRights };
 })();
 
 /* ===================== 絵(部品と勲章) ===================== */
@@ -751,6 +789,7 @@ const fmtPeriod = p => !p ? 'いつでも' : `${p.from ? fmtDay(p.from) : ''}〜
 function setStatus(t){ const el = $('#c-status'); if(el) el.textContent = t; }
 let toastTimer;
 function toast(msg, err){
+  if(err && typeof Snd !== 'undefined') Snd.err();
   const t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = '', err ? 6000 : 3500);
 }
@@ -797,7 +836,7 @@ function renderList(){
   const achs = d.achievements.filter(inField);
   const shelf = achs.length ? achs.map(a => {
     const st = E.achStatus(d, a, t);
-    if(st.state !== 'got') return `<div class="slot off">${achMedal(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}${(p => p.goal ? `<br>${h(progressText(p))}` : '')(E.progressOf(d, a.id))}</div></div>`;
+    if(st.state !== 'got') return `<div class="slot off">${achMedal(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}${(p => progressText(p) ? `<br>${h(progressText(p))}` : '')(E.progressOf(d, a.id))}</div></div>`;
     const mode = st.expired ? 'expired' : st.near ? 'near' : 'got';
     const g = st.grant;
     const sub = [`${fmtDay(g.day)}達成`];
@@ -819,22 +858,34 @@ function renderList(){
 }
 
 /* ---- 進捗と更新の概要 ---- */
-function progressText(p){ return p.goal ? `${p.value ?? 0} / ${p.goal}${p.unit}` : ''; }
+function progressText(p){ return p.goal ? `${p.value} / ${p.goal}${p.unit}` : p.pct !== null ? `${Math.round(p.pct*100)}%` : ''; }
+function entryLabel(e, p){ return typeof e.add === 'number' ? `${e.add >= 0 ? '+' : ''}${e.add}${p.unit}` : typeof e.pct === 'number' ? `${e.pct}%` : ''; }
 function progressBox(a){
   const p = E.progressOf(S.data, a.id), last = p.entries[p.entries.length - 1], open = S.progFor === a.id;
-  const hist = p.entries.slice().reverse().map(e => `<li><span class="pd">${fmtDay(e.day)}</span>${e.value !== null ? `<b>${e.value}${h(p.unit)}</b> ` : ''}${h(e.summary)}<button class="ib px" data-act="prog-del" data-id="${h(e.id)}" aria-label="この記録を消す">×</button></li>`).join('');
-  const head = p.goal
-    ? `<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${p.goal}" aria-valuenow="${p.value ?? 0}"><i style="width:${Math.round((p.pct || 0)*100)}%"></i></div><span class="pv">${h(progressText(p))}${p.reached ? '・目標に届いた' : ''}</span>`
-    : `<span class="pv">${p.entries.length ? `${p.entries.length}回更新` : 'まだ書いていない'}</span>`;
+  const editing = p.entries.some(e => e.id === S.progEdit);
+  const numField = (prefix, val) => a.goal
+    ? `<label class="f">足す数(今 ${p.value}${h(p.unit)} / 目標 ${a.goal}${h(p.unit)}。減らすときはマイナス)<input type="number" step="1" id="${prefix}-add" value="${val ?? ''}"></label>`
+    : `<label class="f">進み具合(%)(自分の見立てで0〜100)<input type="number" min="0" max="100" step="1" id="${prefix}-pct" value="${val ?? ''}"></label>`;
+  const bar = p.pct !== null ? `<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p.pct*100)}"><i style="width:${Math.round(p.pct*100)}%"></i></div>` : '';
+  const txt = progressText(p);
+  const head = `${bar}<span class="pv">${txt ? h(txt) : (p.entries.length ? `${p.entries.length}回更新` : 'まだ書いていない')}${p.reached ? '・目標に届いた' : ''}</span>`;
   const form = open ? `<div class="pform">
-      ${a.goal ? `<label class="f">今の数(目標 ${a.goal}${h(a.unit || '')})<input type="number" min="0" step="1" id="pg-val" value="${p.value ?? ''}"></label>` : ''}
+      ${numField('pg', a.goal ? 1 : p.pctIn)}
       <label class="f">更新の概要(何が進んだか・気づいたこと)<textarea id="pg-sum" placeholder="例:RAIDを1回成功。期限前に計画を直して間に合わせた"></textarea></label>
       <div class="acts"><button class="btn small" data-act="prog-save" data-id="${h(a.id)}">書く</button><button class="btn line small" data-act="prog-cancel">やめる</button></div></div>`
     : `<button class="btn line small" data-act="prog-open" data-id="${h(a.id)}">進捗を書く</button>`;
+  const hist = p.entries.slice().reverse().map(e => e.id === S.progEdit
+    ? `<li class="pedit"><div class="pform">
+        <label class="f">日付<input type="date" id="pe-day" value="${h(e.day)}"></label>
+        ${numField('pe', a.goal ? e.add : e.pct)}
+        <label class="f">更新の概要<textarea id="pe-sum">${h(e.summary || '')}</textarea></label>
+        <div class="acts"><button class="btn small" data-act="prog-update" data-id="${h(e.id)}">直す</button><button class="btn line small" data-act="prog-edit-cancel">やめる</button></div></div></li>`
+    : `<li><span class="pd">${fmtDay(e.day)}</span>${entryLabel(e, p) ? `<b>${h(entryLabel(e, p))}</b> ` : ''}<span class="ps">${h(e.summary || '')}</span>
+        <span class="pbtns"><button class="ib" data-act="prog-edit" data-id="${h(e.id)}">直す</button><button class="ib" data-act="prog-del" data-id="${h(e.id)}" aria-label="この記録を消す">×</button></span></li>`).join('');
   return `<div class="prog"><div class="prog-head"><span class="pl">進捗</span>${head}</div>
     ${last && last.summary ? `<div class="plast"><span class="pd">${fmtDay(last.day)}</span>${h(last.summary)}</div>` : ''}
     ${form}
-    ${hist ? `<details class="phist"><summary>これまでの更新(${p.entries.length})</summary><ul>${hist}</ul></details>` : ''}</div>`;
+    ${hist ? `<details class="phist" ${editing ? 'open' : ''}><summary>これまでの更新(${p.entries.length})</summary><ul>${hist}</ul></details>` : ''}</div>`;
 }
 
 /* ---- 効果音(ファイルを使わず、その場で作る) ---- */
@@ -847,33 +898,51 @@ const Snd = (() => {
     try{ if(!ctx) ctx = new C(); if(ctx.state === 'suspended') ctx.resume(); }catch(e){ return null; }
     return ctx;
   }
-  function burst(c, t, dur, freq, q, vol){
-    const b = c.createBuffer(1, Math.ceil(c.sampleRate*dur), c.sampleRate), ch = b.getChannelData(0);
-    for(let i = 0; i < ch.length; i++) ch[i] = (Math.random()*2 - 1)*Math.pow(1 - i/ch.length, 4);
-    const s = c.createBufferSource(); s.buffer = b;
-    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
-    const g = c.createGain(); g.gain.value = vol;
-    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+  function noiseSrc(c, dur, shape){
+    const b = c.createBuffer(1, Math.max(1, Math.ceil(c.sampleRate*dur)), c.sampleRate), ch = b.getChannelData(0);
+    for(let i = 0; i < ch.length; i++){ const x = i/ch.length; ch[i] = (Math.random()*2 - 1)*(shape === 'swell' ? Math.sin(Math.PI*x) : Math.pow(1 - x, 4)); }
+    const s = c.createBufferSource(); s.buffer = b; return s;
+  }
+  function burst(c, t, dur, freq, q, vol, f1, shape){
+    const s = noiseSrc(c, dur, shape), f = c.createBiquadFilter(), g = c.createGain();
+    f.type = 'bandpass'; f.Q.value = q; f.frequency.setValueAtTime(freq, t); if(f1) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.value = vol; s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
   }
   function thunk(c, t, f0, f1, dur, vol, type){
-    const o = c.createOscillator(); o.type = type || 'triangle';
+    const o = c.createOscillator(), g = c.createGain(); o.type = type || 'triangle';
     o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0008, t + dur*1.2);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0008, t + dur*1.2);
     o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur*1.3);
   }
-  // カチッ:乾いた留め金の音
-  function click(){ const c = ac(); if(!c) return; const t = c.currentTime + .005;
-    burst(c, t, .028, 2900, 2.4, .9); burst(c, t + .012, .02, 5200, 3, .35); thunk(c, t, 260, 95, .045, .32); }
-  // コッ:分野の札を切り替える軽い音
-  function tick(){ const c = ac(); if(!c) return; const t = c.currentTime + .005;
-    burst(c, t, .02, 3900, 3, .45); thunk(c, t, 420, 180, .03, .14); }
-  // 達成:重い留め金+小さな鐘
-  function seal(){ const c = ac(); if(!c) return; const t = c.currentTime + .005;
-    burst(c, t, .05, 1500, 1.6, 1); thunk(c, t, 180, 55, .12, .5, 'sine'); burst(c, t + .07, .03, 3400, 2.5, .5);
-    [784, 1175, 1568].forEach((f, i) => { const s = t + .16 + i*.08, o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
-      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(.11, s + .01); g.gain.exponentialRampToValueAtTime(.0008, s + 1.1); o.connect(g); g.connect(c.destination); o.start(s); o.stop(s + 1.2); });
+  function tone(c, t, f, dur, vol, type){
+    const o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + .05);
   }
-  return { click, tick, seal, isOn: () => on, set(v){ on = !!v; try{ localStorage.setItem('eiten.sound', on ? 'on' : 'off'); }catch(e){} } };
+  const at = fn => () => { const c = ac(); if(c) fn(c, c.currentTime + .005); };
+  return {
+    // 樹形図:乾いた留め金の「カチッ」
+    click: at((c, t) => { burst(c, t, .028, 2900, 2.4, .9); burst(c, t + .012, .02, 5200, 3, .35); thunk(c, t, 260, 95, .045, .32); }),
+    // 樹形図の分野の札:軽い「コッ」
+    tick: at((c, t) => { burst(c, t, .02, 3900, 3, .45); thunk(c, t, 420, 180, .03, .14); }),
+    // ふつうのボタン:やわらかい木の「トッ」
+    tap: at((c, t) => { thunk(c, t, 340, 170, .04, .16, 'sine'); tone(c, t, 1180, .05, .035); burst(c, t, .012, 2000, 2, .12); }),
+    // タブ:紙をめくる「サッ」
+    page: at((c, t) => { burst(c, t, .17, 700, 1.1, .5, 3400, 'swell'); }),
+    // 進捗を書く:ペンを走らせる音と、小さな鈴
+    write: at((c, t) => { burst(c, t, .07, 3200, 2.2, .28, 5400, 'swell'); burst(c, t + .09, .09, 2700, 2.2, .26, 5000, 'swell'); tone(c, t + .22, 1047, .55, .07); tone(c, t + .3, 1568, .8, .055); }),
+    // 足す・直す・しまう・取り込む:二つの音が上がる「ポロン」
+    ok: at((c, t) => { tone(c, t, 784, .4, .08); tone(c, t + .085, 1175, .6, .07); tone(c, t + .085, 2350, .25, .015); }),
+    // 消す:下がる音
+    del: at((c, t) => { thunk(c, t, 620, 250, .2, .09, 'sine'); burst(c, t, .05, 900, 1.2, .15); }),
+    // まちがい:低いノック二つ
+    err: at((c, t) => { thunk(c, t, 210, 150, .07, .22); thunk(c, t + .11, 195, 140, .08, .22); }),
+    // 達成:重い留め金と鐘
+    seal: at((c, t) => { burst(c, t, .05, 1500, 1.6, 1); thunk(c, t, 180, 55, .12, .5, 'sine'); burst(c, t + .07, .03, 3400, 2.5, .5);
+      [784, 1175, 1568].forEach((f, i) => tone(c, t + .16 + i*.08, f, 1.1, .11)); }),
+    isOn: () => on,
+    set(v){ on = !!v; try{ localStorage.setItem('eiten.sound', on ? 'on' : 'off'); }catch(e){} },
+  };
 })();
 
 /* ---- 設定(自由に足す・直す・消す) ---- */
@@ -1066,7 +1135,7 @@ function nodeState(n, t){
 }
 function nodeBar(n, st){
   if(n.type !== 'a' || st.state === 'got') return '';
-  const p = E.progressOf(S.data, n.id); if(!p.goal) return '';
+  const p = E.progressOf(S.data, n.id); if(p.pct === null) return '';
   return `<rect class="nb-bg" x="-56" y="51.5" width="112" height="2.6"/><rect class="nb" x="-56" y="51.5" width="${(112*(p.pct || 0)).toFixed(1)}" height="2.6"/>`;
 }
 function treeSvg(L, t){
@@ -1131,7 +1200,7 @@ function renderTree(){
   const L = treeLayout(d, S.field, t);
   const sel = L.nodes.find(n => n.key === S.treeSel);
   const got = d.achievements.filter(a => E.achStatus(d, a, t).state === 'got' && inField(a)).length, all = d.achievements.filter(inField).length;
-  return `<div class="hoi"><div class="hoi-bar">${fieldChips('すべての分野')}<span class="hoi-count">紋章 ${got} / ${all}</span><button class="snd" data-act="snd-toggle" aria-pressed="${Snd.isOn()}">効果音 ${Snd.isOn() ? 'オン' : 'オフ'}</button></div>
+  return `<div class="hoi"><div class="hoi-bar">${fieldChips('すべての分野')}<span class="hoi-count">紋章 ${got} / ${all}</span></div>
     <div class="legend"><span><i class="lg-got"></i>手に入れた</span><span><i class="lg-open"></i>今目指せる</span><span><i class="lg-locked"></i>鍵がかかっている</span></div>
     ${L.nodes.length ? `<div class="tree-wrap">${treeSvg(L, t)}</div>` : '<div class="empty">この分野には、まだ実績も挑戦権もありません。</div>'}
     ${sel ? treeDetail(sel, t) : '<p class="hoi-hint">紋章や扉を押すと、達成条件・必要実績・今の状態が出ます。</p>'}</div>`;
@@ -1360,7 +1429,7 @@ const Studio = {
   async delPart(){
     const p = ST.part; if(!p.id) return;
     if(S.data.arts.some(a => a.layers.some(L => L.part === p.id))){ toast('この部品を使っている勲章があるので消せません', true); return; }
-    const ok = await commit(d => { d.parts = d.parts.filter(x => x.id !== p.id); return true; }, `部品を消す ${p.name}`, () => '部品を消しました');
+    const ok = await commit(d => { d.parts = d.parts.filter(x => x.id !== p.id); return true; }, `部品を消す ${p.name}`, () => '部品を消しました', 'del');
     if(ok){ ST.part = blankPart(); ST.sel = -1; ST.dirty = false; render(); }
   },
   newArt(){ if(!okToLeave()) return; ST.art = blankArt(); ST.lsel = -1; render(); },
@@ -1382,7 +1451,7 @@ const Studio = {
   async delArt(){
     const a = ST.art; if(!a.id) return;
     if(S.data.achievements.some(x => x.art === a.id)){ toast('この勲章が結びついた実績があるので消せません', true); return; }
-    const ok = await commit(d => { d.arts = d.arts.filter(x => x.id !== a.id); return true; }, `勲章を消す ${a.name}`, () => '勲章を消しました');
+    const ok = await commit(d => { d.arts = d.arts.filter(x => x.id !== a.id); return true; }, `勲章を消す ${a.name}`, () => '勲章を消しました', 'del');
     if(ok){ ST.art = blankArt(); ST.lsel = -1; ST.dirty = false; render(); }
   },
 };
@@ -1434,12 +1503,12 @@ function celebrate(achId, renewal){
 }
 
 /* ---- 操作 ---- */
-async function commit(fn, message, okMsg){
+async function commit(fn, message, okMsg, sound){
   if(!S.cfg.token){ toast('先に接続してください', true); return null; }
   if(S.busy) return null;
   S.busy = true;
   let res = null;
-  try{ res = await save(fn, message); if(okMsg) toast(okMsg(res)); }
+  try{ res = await save(fn, message); if(okMsg) toast(okMsg(res)); const snd = sound === undefined ? 'ok' : sound; if(snd) Snd[snd](); }
   catch(err){ toast(err.message, true); }
   finally{ S.busy = false; }
   render();
@@ -1451,13 +1520,13 @@ const Actions = {
   async grant(id){
     const t = today(), a = E.findAch(S.data, id);
     const res = await commit(d => E.grant(d, id, { today: t }), `達成 ${a ? a.name : id}`, r =>
-      `「${achName(r.achId)}」を${r.renewal ? '更新' : '達成'}しました` + (r.newRights.length ? '。挑戦権を得ました:' + r.newRights.map(chName).join('、') : ''));
+      `「${achName(r.achId)}」を${r.renewal ? '更新' : '達成'}しました` + (r.newRights.length ? '。挑戦権を得ました:' + r.newRights.map(chName).join('、') : ''), null);
     if(res) celebrate(res.achId, res.renewal);
     return res;
   },
   async ungrant(id){
     if(!ask(`「${achName(id)}」の達成を取り消しますか?`)) return null;
-    return commit(d => E.ungrant(d, id), `取り消し ${achName(id)}`, r => '取り消しました' + (r.removedRights.length ? '(それで得た挑戦権も戻しました)' : ''));
+    return commit(d => E.ungrant(d, id), `取り消し ${achName(id)}`, r => '取り消しました' + (r.removedRights.length ? '(それで得た挑戦権も戻しました)' : ''), 'del');
   },
   startEdit(type, id, preset){
     const cur = id ? (type === 'achievement' ? E.findAch(S.data, id) : E.findCh(S.data, id)) : null;
@@ -1476,19 +1545,27 @@ const Actions = {
   async removeDef(type, id){
     const name = type === 'achievement' ? achName(id) : chName(id);
     if(!ask(`「${name}」を消しますか?`)) return null;
-    return commit(d => E.removeDef(d, { type, id, today: today() }), `消す ${name}`, () => '消しました');
+    return commit(d => E.removeDef(d, { type, id, today: today() }), `消す ${name}`, () => '消しました', 'del');
   },
-  progOpen(id){ S.progFor = id; render(); const el = $('#pg-val') || $('#pg-sum'); if(el && el.focus) el.focus(); },
+  progOpen(id){ S.progFor = id; S.progEdit = null; render(); const el = $('#pg-add') || $('#pg-pct') || $('#pg-sum'); if(el && el.focus) el.focus(); },
   async progSave(id){
-    const value = ($('#pg-val') || {}).value ?? '', summary = ($('#pg-sum') || {}).value || '', t = today();
-    const res = await commit(d => E.addProgress(d, { achId: id, value, summary, today: t }), `進捗 ${achName(id)}`, r =>
-      '進捗を書きました' + (r.reached && E.canGrant(S.data, id, t).ok && E.achStatus(S.data, E.findAch(S.data, id), t).state !== 'got' ? '。目標に届いたので「達成した」を押せます' : ''));
+    const v = sel => ($(sel) || {}).value ?? '';
+    const add = v('#pg-add'), pct = v('#pg-pct'), summary = v('#pg-sum'), t = today();
+    const reachMsg = r => r.reached && E.canGrant(S.data, id, t).ok && E.achStatus(S.data, E.findAch(S.data, id), t).state !== 'got' ? '。目標に届いたので「達成した」を押せます' : '';
+    const res = await commit(d => E.addProgress(d, { achId: id, add, pct, summary, today: t }), `進捗 ${achName(id)}`, r => '進捗を書きました' + reachMsg(r), 'write');
     if(res){ S.progFor = null; render(); }
+    return res;
+  },
+  progEdit(entryId){ S.progEdit = entryId; S.progFor = null; render(); },
+  async progUpdate(entryId){
+    const v = sel => ($(sel) || {}).value ?? '';
+    const res = await commit(d => E.updateProgress(d, entryId, { add: v('#pe-add'), pct: v('#pe-pct'), summary: v('#pe-sum'), day: v('#pe-day') }), '進捗の記録を直す', () => '記録を直しました', 'write');
+    if(res){ S.progEdit = null; render(); }
     return res;
   },
   async progDel(entryId){
     if(!ask('この進捗の記録を消しますか?')) return null;
-    return commit(d => E.removeProgress(d, entryId), '進捗の記録を消す', () => '消しました');
+    return commit(d => E.removeProgress(d, entryId), '進捗の記録を消す', () => '消しました', 'del');
   },
   takeDelivery(id){ const x = DELIVERIES.find(v => v.id === id); if(x) Actions.startEdit(x.type, null, x.def); },
   importRead(){
@@ -1508,19 +1585,27 @@ const Actions = {
   },
 };
 
+// どのボタンにも音:タブは紙をめくる音、樹形図の札は「コッ」、ほかは「トッ」(樹形図の紋章は別で「カチッ」)
+document.addEventListener('click', e => {
+  const el = e.target.closest && e.target.closest('button,[data-tab],summary');
+  if(!el || el.closest('[data-node]') || el.id === 'sndBtn' || el.disabled) return;
+  if(el.dataset.tab) Snd.page(); else if(el.classList.contains('chip') && el.closest('.hoi')) Snd.tick(); else Snd.tap();
+}, true);
 document.addEventListener('click', e => {
   const tb = e.target.closest('[data-tab]');
   if(tb){ S.tab = tb.dataset.tab; render(); return; }
   const b = e.target.closest('[data-act]');
   if(!b) return;
   const act = b.dataset.act;
-  if(act === 'field'){ if(b.closest('.hoi')) Snd.tick(); S.field = b.dataset.v; render(); }
+  if(act === 'field'){ S.field = b.dataset.v; render(); }
   else if(act === 'grant') Actions.grant(b.dataset.id);
   else if(act === 'prog-open') Actions.progOpen(b.dataset.id);
   else if(act === 'prog-save') Actions.progSave(b.dataset.id);
   else if(act === 'prog-cancel'){ S.progFor = null; render(); }
   else if(act === 'prog-del') Actions.progDel(b.dataset.id);
-  else if(act === 'snd-toggle'){ Snd.set(!Snd.isOn()); render(); if(Snd.isOn()) Snd.tick(); }
+  else if(act === 'prog-edit') Actions.progEdit(b.dataset.id);
+  else if(act === 'prog-update') Actions.progUpdate(b.dataset.id);
+  else if(act === 'prog-edit-cancel'){ S.progEdit = null; render(); }
   else if(act === 'ungrant') Actions.ungrant(b.dataset.id);
   else if(act === 'def-add') Actions.startEdit(b.dataset.type);
   else if(act === 'def-edit') Actions.startEdit(b.dataset.type, b.dataset.id);
@@ -1552,6 +1637,12 @@ document.addEventListener('pointermove', onPointerMove);
 document.addEventListener('pointerup', onPointerUp);
 document.addEventListener('pointercancel', onPointerUp);
 
+function initSound(){
+  const b = $('#sndBtn');
+  const show = () => { b.textContent = '効果音 ' + (Snd.isOn() ? 'オン' : 'オフ'); b.setAttribute('aria-pressed', String(Snd.isOn())); };
+  b.addEventListener('click', () => { Snd.set(!Snd.isOn()); show(); if(Snd.isOn()) Snd.tap(); });
+  show();
+}
 function initConn(){
   $('#ver').textContent = VERSION;
   ['owner','repo','branch','token'].forEach(k => $('#c-' + k).value = S.cfg[k] || '');
@@ -1570,8 +1661,9 @@ function initConn(){
 function applyHash(){ const m = /^#([ac]):(.+)$/.exec(location.hash || ''); if(m){ S.tab = 'tree'; S.field = 'all'; S.treeSel = m[1] + ':' + decodeURIComponent(m[2]); } }
 addEventListener('hashchange', () => { applyHash(); render(); });
 applyHash();
-const App = { S, E, A, Actions, Studio, treeLayout, celebrate, render, loadAll, save, VERSION };
+const App = { S, E, A, Snd, Actions, Studio, treeLayout, celebrate, render, loadAll, save, VERSION };
 window.App = App;
+initSound();
 initConn();
 render();
 App.ready = (S.cfg.token ? loadAll().catch(err => toast(err.message, true)) : Promise.resolve()).then(render);
