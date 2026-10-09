@@ -188,6 +188,33 @@ textarea{min-height:70px;resize:vertical}
 .sw{width:28px;height:28px;border-radius:4px;border:1px solid var(--line);cursor:pointer;font-size:10px;padding:0}
 .sw[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
 
+/* 進捗 */
+.prog{margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:rgba(255,255,255,.55);font-size:14px}
+.prog-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.prog .pl{font-weight:600;color:var(--sub);font-size:13px}
+.pbar{flex:1;min-width:90px;max-width:260px;height:9px;border-radius:5px;background:#dfe1e7;overflow:hidden;box-shadow:inset 0 1px 1px rgba(0,0,0,.12)}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,#9c7a33,#e3c46c);border-radius:5px}
+.pv{font-variant-numeric:tabular-nums;font-weight:600}
+.plast{margin:4px 0;color:var(--ink)}
+.pd{color:var(--sub);font-size:12px;margin-right:6px}
+.pform{display:grid;gap:8px;margin-top:6px}
+.prog .btn{margin-top:4px}
+.phist summary{cursor:pointer;color:var(--sub);font-size:13px;margin-top:6px}
+.phist ul{list-style:none;margin:4px 0 0;padding:0}
+.phist li{border-top:1px solid var(--line);padding:4px 0;display:flex;gap:4px;align-items:baseline}
+.phist .px{margin-left:auto;padding:0 6px}
+.hoi .prog{background:rgba(0,0,0,.22);border-color:#5d5843;color:#e9e1c6}
+.hoi .prog .pl,.hoi .pd,.hoi .phist summary{color:#b3aa8c}
+.hoi .plast{color:#f1e9cf}
+.hoi .pbar{background:#1b1c16;box-shadow:inset 0 0 0 1px #4b4736}
+.hoi .phist li{border-color:#4b4736}
+.hoi .ib{background:#2c2d25;color:#e9e1c6;border-color:#6d6649}
+.hoi textarea,.hoi input[type=number]{background:#1d1e18;color:#f1e9cf;border-color:#6d6649}
+.hoi .pform .f{color:#b3aa8c}
+.nb-bg{fill:#14140f}
+.nb{fill:#e3c46c}
+.snd{background:none;border:1px solid #6d6649;color:#d9cfae;border-radius:2px;font-size:12px;padding:2px 8px;cursor:pointer}
+.snd[aria-pressed="false"]{color:#8a8670;border-style:dashed}
 /* 取り込み */
 .importbox summary{cursor:pointer}
 .importbox textarea{margin-top:4px;font-size:12px;min-height:80px}
@@ -251,13 +278,13 @@ textarea{min-height:70px;resize:vertical}
 
 <script>
 'use strict';
-const VERSION = '2026-10-09 r6';
+const VERSION = '2026-10-09 r7';
 const PATHS = { data: 'roadmap/apps/eiten/data.json', ministries: 'roadmap/gov/ministries.json' };
 
 /* ===================== 決まり(画面に依らない計算) ===================== */
 const E = (() => {
   const DAY = 864e5, NEAR_DAYS = 14;
-  const KEYS = ['achievements','challenges','parts','arts','grants','rights','reviews','rules'];
+  const KEYS = ['achievements','challenges','parts','arts','grants','rights','reviews','rules','progress'];
   const clone = o => JSON.parse(JSON.stringify(o));
 
   // 1日の区切りは日本時間の朝5時(= UTC + 4時間 の日付)
@@ -361,7 +388,7 @@ const E = (() => {
       period: cleanPeriod(raw.period),
       art: raw.art || null,
     };
-    if(type === 'achievement'){ def.renewDays = posInt(raw.renewDays); }
+    if(type === 'achievement'){ def.renewDays = posInt(raw.renewDays); def.goal = posInt(raw.goal); def.unit = String(raw.unit || '').trim().slice(0, 6); }
     else { def.uses = posInt(raw.uses); def.cooldownDays = posInt(raw.cooldownDays); def.validDays = posInt(raw.validDays); }
     return def;
   }
@@ -436,20 +463,47 @@ const E = (() => {
     if(p.parts.some(x => /^b-/.test(x.id)) || p.arts.some(x => /^ba-/.test(x.id))) throw new Error('最初からある部品と同じidは使えません');
     return p;
   }
-  function importPack(d, p, today){
+  // 進捗:数(目標があるとき)と更新の概要を、履歴として積む
+  function progressOf(d, achId){
+    const a = findAch(d, achId), entries = d.progress.filter(x => x.achId === achId);
+    const withNum = entries.filter(x => typeof x.value === 'number');
+    const value = withNum.length ? withNum[withNum.length - 1].value : null;
+    const goal = a && a.goal ? a.goal : null;
+    return { entries, value, goal, unit: (a && a.unit) || '', pct: goal && value !== null ? Math.max(0, Math.min(1, value/goal)) : null, reached: !!goal && value !== null && value >= goal };
+  }
+  function addProgress(d, { achId, value, summary, today }){
+    const a = findAch(d, achId);
+    if(!a) throw new Error('その実績はありません');
+    const v = (value === '' || value === null || value === undefined) ? null : Number(value);
+    if(v !== null && (!Number.isFinite(v) || v < 0)) throw new Error('数は0以上で書いてください');
+    const sum = String(summary || '').trim();
+    if(v === null && !sum) throw new Error(a.goal ? '今の数か、更新の概要を書いてください' : '更新の概要を書いてください');
+    const e = { id: newId('g-'), achId, day: today, value: v, summary: sum };
+    d.progress.push(e);
+    return Object.assign({ entry: e }, progressOf(d, achId));
+  }
+  function removeProgress(d, entryId){
+    const k = d.progress.findIndex(x => x.id === entryId);
+    if(k < 0) throw new Error('その記録は見つかりません');
+    d.progress.splice(k, 1); return true;
+  }
+  function importPack(d, p, today, ministries){
     const up = (list, x) => { const k = list.findIndex(y => y.id === x.id); if(k >= 0){ list[k] = clone(x); return 1; } list.push(clone(x)); return 0; };
     let replaced = 0;
     p.parts.forEach(x => replaced += up(d.parts, Object.assign({ kind: '紋' }, x, { builtin: undefined })));
     p.arts.forEach(x => replaced += up(d.arts, Object.assign({ text: { str: '' } }, x, { builtin: undefined })));
     // 必要実績は名前でも指定できる(requiresNames)。見つからない名前は飛ばす
     const missingNames = [];
+    // 分野も省の名前で指定できる(fieldNames)
+    const missingFields = [];
+    const fieldsOf = x => (x.fieldNames || []).map(n => { const m = (ministries || []).find(y => y.name === n); if(!m) missingFields.push(n); return m && m.tag; }).filter(Boolean);
     const withReqs = x => {
       const ids = (x.requiresNames || []).map(n => { const a = d.achievements.find(y => y.name === n); if(!a) missingNames.push(n); return a && a.id; }).filter(Boolean);
-      return Object.assign({}, x, { requires: [...new Set([...(x.requires || []).filter(id => findAch(d, id)), ...ids])], __import: true });
+      return Object.assign({}, x, { requires: [...new Set([...(x.requires || []).filter(id => findAch(d, id)), ...ids])], fields: [...new Set([...(x.fields || []), ...fieldsOf(x)])], __import: true });
     };
     p.achievements.forEach(x => { if(findAch(d, x.id)) replaced++; saveDef(d, { type: 'achievement', id: x.id, raw: withReqs(x), today }); });
     p.challenges.forEach(x => { if(findCh(d, x.id)) replaced++; saveDef(d, { type: 'challenge', id: x.id, raw: withReqs(x), today }); });
-    return { parts: p.parts.length, arts: p.arts.length, achievements: p.achievements.length, challenges: p.challenges.length, replaced, missingNames, newRights: checkRights(d, today) };
+    return { parts: p.parts.length, arts: p.arts.length, achievements: p.achievements.length, challenges: p.challenges.length, replaced, missingNames, missingFields, newRights: checkRights(d, today) };
   }
 
   // 条件がそろった挑戦権を渡す(一度得たものは取り上げない)
@@ -468,7 +522,7 @@ const E = (() => {
 
   return { VERSION_DATA: 1, NEAR_DAYS, newId, taskDay, addDays, diffDays, emptyData, normalize, clone,
     findAch, findCh, grantFor, rightFor, held, inPeriod, missing, achStatus, challengeStatus,
-    canGrant, grant, ungrant, cleanDef, validateDef, hasCycle, saveDef, removeDef, parsePack, importPack, checkRights };
+    canGrant, grant, ungrant, progressOf, addProgress, removeProgress, cleanDef, validateDef, hasCycle, saveDef, removeDef, parsePack, importPack, checkRights };
 })();
 
 /* ===================== 絵(部品と勲章) ===================== */
@@ -743,7 +797,7 @@ function renderList(){
   const achs = d.achievements.filter(inField);
   const shelf = achs.length ? achs.map(a => {
     const st = E.achStatus(d, a, t);
-    if(st.state !== 'got') return `<div class="slot off">${achMedal(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}</div></div>`;
+    if(st.state !== 'got') return `<div class="slot off">${achMedal(a, 'shadow')}<div class="nm">${h(a.name)}</div><div class="sm">${st.state === 'open' ? '今目指せる' : '鍵がかかっている'}${(p => p.goal ? `<br>${h(progressText(p))}` : '')(E.progressOf(d, a.id))}</div></div>`;
     const mode = st.expired ? 'expired' : st.near ? 'near' : 'got';
     const g = st.grant;
     const sub = [`${fmtDay(g.day)}達成`];
@@ -764,18 +818,77 @@ function renderList(){
     `<h2>持っている挑戦権</h2><div class="rights">${rightsHtml}</div>`;
 }
 
+/* ---- 進捗と更新の概要 ---- */
+function progressText(p){ return p.goal ? `${p.value ?? 0} / ${p.goal}${p.unit}` : ''; }
+function progressBox(a){
+  const p = E.progressOf(S.data, a.id), last = p.entries[p.entries.length - 1], open = S.progFor === a.id;
+  const hist = p.entries.slice().reverse().map(e => `<li><span class="pd">${fmtDay(e.day)}</span>${e.value !== null ? `<b>${e.value}${h(p.unit)}</b> ` : ''}${h(e.summary)}<button class="ib px" data-act="prog-del" data-id="${h(e.id)}" aria-label="この記録を消す">×</button></li>`).join('');
+  const head = p.goal
+    ? `<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${p.goal}" aria-valuenow="${p.value ?? 0}"><i style="width:${Math.round((p.pct || 0)*100)}%"></i></div><span class="pv">${h(progressText(p))}${p.reached ? '・目標に届いた' : ''}</span>`
+    : `<span class="pv">${p.entries.length ? `${p.entries.length}回更新` : 'まだ書いていない'}</span>`;
+  const form = open ? `<div class="pform">
+      ${a.goal ? `<label class="f">今の数(目標 ${a.goal}${h(a.unit || '')})<input type="number" min="0" step="1" id="pg-val" value="${p.value ?? ''}"></label>` : ''}
+      <label class="f">更新の概要(何が進んだか・気づいたこと)<textarea id="pg-sum" placeholder="例:RAIDを1回成功。期限前に計画を直して間に合わせた"></textarea></label>
+      <div class="acts"><button class="btn small" data-act="prog-save" data-id="${h(a.id)}">書く</button><button class="btn line small" data-act="prog-cancel">やめる</button></div></div>`
+    : `<button class="btn line small" data-act="prog-open" data-id="${h(a.id)}">進捗を書く</button>`;
+  return `<div class="prog"><div class="prog-head"><span class="pl">進捗</span>${head}</div>
+    ${last && last.summary ? `<div class="plast"><span class="pd">${fmtDay(last.day)}</span>${h(last.summary)}</div>` : ''}
+    ${form}
+    ${hist ? `<details class="phist"><summary>これまでの更新(${p.entries.length})</summary><ul>${hist}</ul></details>` : ''}</div>`;
+}
+
+/* ---- 効果音(ファイルを使わず、その場で作る) ---- */
+const Snd = (() => {
+  let ctx = null, on = true;
+  try{ on = localStorage.getItem('eiten.sound') !== 'off'; }catch(e){}
+  function ac(){
+    if(!on) return null;
+    const C = window.AudioContext || window.webkitAudioContext; if(!C) return null;
+    try{ if(!ctx) ctx = new C(); if(ctx.state === 'suspended') ctx.resume(); }catch(e){ return null; }
+    return ctx;
+  }
+  function burst(c, t, dur, freq, q, vol){
+    const b = c.createBuffer(1, Math.ceil(c.sampleRate*dur), c.sampleRate), ch = b.getChannelData(0);
+    for(let i = 0; i < ch.length; i++) ch[i] = (Math.random()*2 - 1)*Math.pow(1 - i/ch.length, 4);
+    const s = c.createBufferSource(); s.buffer = b;
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    const g = c.createGain(); g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+  }
+  function thunk(c, t, f0, f1, dur, vol, type){
+    const o = c.createOscillator(); o.type = type || 'triangle';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0008, t + dur*1.2);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur*1.3);
+  }
+  // カチッ:乾いた留め金の音
+  function click(){ const c = ac(); if(!c) return; const t = c.currentTime + .005;
+    burst(c, t, .028, 2900, 2.4, .9); burst(c, t + .012, .02, 5200, 3, .35); thunk(c, t, 260, 95, .045, .32); }
+  // コッ:分野の札を切り替える軽い音
+  function tick(){ const c = ac(); if(!c) return; const t = c.currentTime + .005;
+    burst(c, t, .02, 3900, 3, .45); thunk(c, t, 420, 180, .03, .14); }
+  // 達成:重い留め金+小さな鐘
+  function seal(){ const c = ac(); if(!c) return; const t = c.currentTime + .005;
+    burst(c, t, .05, 1500, 1.6, 1); thunk(c, t, 180, 55, .12, .5, 'sine'); burst(c, t + .07, .03, 3400, 2.5, .5);
+    [784, 1175, 1568].forEach((f, i) => { const s = t + .16 + i*.08, o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(.11, s + .01); g.gain.exponentialRampToValueAtTime(.0008, s + 1.1); o.connect(g); g.connect(c.destination); o.start(s); o.stop(s + 1.2); });
+  }
+  return { click, tick, seal, isOn: () => on, set(v){ on = !!v; try{ localStorage.setItem('eiten.sound', on ? 'on' : 'off'); }catch(e){} } };
+})();
+
 /* ---- 設定(自由に足す・直す・消す) ---- */
 const DEF_ROWS = {
-  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['renewDays','更新制'],['period','達成できる期間'],['art','勲章']],
+  achievement: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['goal','目標'],['renewDays','更新制'],['period','達成できる期間'],['art','勲章']],
   challenge: [['name','名前'],['fields','分野'],['condition','達成条件'],['description','内容'],['requires','必要実績'],['uses','回数'],['cooldownDays','再挑戦までの間'],['validDays','有効期限'],['period','得られる期間']],
 };
-function fmtVal(k, v){
+function fmtVal(k, v, o){
   if(k === 'fields') return (v || []).map(fieldName).join('、') || 'なし';
   if(k === 'requires') return (v || []).map(achName).join('、') || 'なし';
   if(k === 'period') return fmtPeriod(v);
   if(k === 'description') return v || 'なし';
   if(k === 'art'){ const a = findArt(v); return v ? (a ? a.name : '(なくなった勲章)') : '仮の勲章'; }
   if(k === 'renewDays') return v ? `${v}日ごとに更新` : 'なし';
+  if(k === 'goal') return v ? `${v}${(o && o.unit) || ''}` : 'なし(数で数えない)';
   if(k === 'uses') return v ? `${v}回まで` : '無制限';
   if(k === 'cooldownDays') return v ? `${v}日` : 'なし';
   if(k === 'validDays') return v ? `得てから${v}日` : 'なし';
@@ -790,7 +903,7 @@ function grantButtons(a, t, small){
 }
 function defRows(o, type, t){
   return DEF_ROWS[type].filter(([k]) => k !== 'name' && (k !== 'description' || o.description)).map(([k, n]) =>
-    `<dt>${n}</dt><dd>${k === 'fields' ? tags(o.fields) : k === 'requires' ? reqList(o.requires, t) : h(fmtVal(k, o[k]))}</dd>`).join('');
+    `<dt>${n}</dt><dd>${k === 'fields' ? tags(o.fields) : k === 'requires' ? reqList(o.requires, t) : h(fmtVal(k, o[k], o))}</dd>`).join('');
 }
 function renderSettings(){
   const d = S.data, t = today();
@@ -800,7 +913,7 @@ function renderSettings(){
     const state = st.state === 'got' ? `${fmtDay(st.grant.day)}に達成${st.grant.expires ? `・更新期限 ${fmtDay(st.grant.expires)}` : ''}` : st.state === 'open' ? '今目指せる' : '鍵がかかっている';
     return `<article class="def" id="def-${h(a.id)}">
     <div class="art">${achMedal(a, st.state === 'got' ? (st.expired ? 'expired' : st.near ? 'near' : 'got') : 'shadow', 56)}</div>
-    <div><h3>${h(a.name)} <span class="note">(${h(state)})</span></h3><dl>${defRows(a, 'achievement', t)}</dl></div>
+    <div><h3>${h(a.name)} <span class="note">(${h(state)})</span></h3><dl>${defRows(a, 'achievement', t)}</dl>${progressBox(a)}</div>
     <div class="acts">${grantButtons(a, t, true)}<button class="btn line small" data-act="def-edit" data-type="achievement" data-id="${h(a.id)}">直す</button><button class="btn line small" data-act="def-del" data-type="achievement" data-id="${h(a.id)}">消す</button></div>
   </article>`; }).join('');
   const chHtml = chs.map(c => `<article class="def" id="def-${h(c.id)}">
@@ -826,8 +939,9 @@ function importBox(){
   let prev = '';
   if(p){
     const medals = p.arts.map(a => `<div class="slot" style="padding-bottom:4px">${A.artSvg(a, id => getPart(id) || p.parts.find(x => x.id === id), { size: 72 })}<div class="sm">${h(a.name)}</div></div>`).join('');
+    const fieldNote = a => (a.fieldNames || []).length ? `・分野:${a.fieldNames.map(n => h(n) + (S.ministries.some(m => m.name === n) ? '' : '(見つからないので付けない)')).join('、')}` : '';
     const reqNote = a => (a.requiresNames || []).length ? `・必要実績:${a.requiresNames.map(n => h(n) + (S.data.achievements.some(x => x.name === n) ? '' : '(まだないので付けない)')).join('、')}` : '';
-    const items = [...p.achievements.map(a => `実績「${h(a.name)}」${E.findAch(S.data, a.id) ? '(今あるものを上書き)' : ''}${reqNote(a)}`), ...p.challenges.map(c => `挑戦権「${h(c.name)}」${E.findCh(S.data, c.id) ? '(今あるものを上書き)' : ''}`),
+    const items = [...p.achievements.map(a => `実績「${h(a.name)}」${E.findAch(S.data, a.id) ? '(今あるものを上書き)' : ''}${fieldNote(a)}${reqNote(a)}${a.goal ? `・目標 ${a.goal}${h(a.unit || '')}` : ''}`), ...p.challenges.map(c => `挑戦権「${h(c.name)}」${E.findCh(S.data, c.id) ? '(今あるものを上書き)' : ''}`),
       ...p.parts.map(x => `部品「${h(x.name)}」`)];
     prev = `<div class="card"><h3>${h(p.title || '取り込む中身')}</h3>${medals ? `<div class="shelf" style="padding:6px 0">${medals}</div>` : ''}<div class="note">${items.join('<br>')}</div>
       <div class="acts"><button class="btn gilt" data-act="import-do">取り込む</button><button class="btn line" data-act="import-cancel">やめる</button></div></div>`;
@@ -855,6 +969,7 @@ function defForm(){
     <label class="f">達成条件(見れば達成したか分かる形で)<textarea id="rf-cond">${h(d.condition)}</textarea></label>
     <label class="f">${isA ? '実績' : '挑戦権'}の内容(どんなものか・込めた意味。任意)<textarea id="rf-desc">${h(d.description || '')}</textarea></label>
     <div class="f note">必要実績${isA ? '' : '(この組み合わせを持つと得られる)'}<div class="checks">${reqHtml}</div></div>
+    ${isA ? `<div class="two">${num('rf-goal', '目標の数(進捗を数で見るとき)', d.goal, '空なら数で数えない')}<label class="f">単位<input type="text" id="rf-unit" maxlength="6" value="${h(d.unit || '')}" placeholder="回・個など"></label></div>` : ''}
     ${isA ? `<div class="two">${num('rf-renew', '更新制(何日ごとに更新)', d.renewDays, '空なら更新なし')}<label class="f">勲章<select id="rf-art"><option value="">仮の勲章</option>${artOpts}</select></label></div>`
           : `<div class="two">${num('rf-uses', '回数', d.uses, '空なら無制限')}${num('rf-cool', '再挑戦までの日数', d.cooldownDays, '空ならなし')}</div>
              <div class="two">${num('rf-valid', '有効期限(得てから何日)', d.validDays, '空ならなし')}<span></span></div>`}
@@ -868,7 +983,7 @@ function readDefForm(){
   const checked = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value);
   const raw = { name: v('rf-name'), fields: checked('rf-field'), condition: v('rf-cond'), description: v('rf-desc'), requires: checked('rf-req'),
     period: { from: v('rf-from'), to: v('rf-to') }, art: S.edit.type === 'achievement' ? (v('rf-art') || null) : null };
-  if(S.edit.type === 'achievement') raw.renewDays = v('rf-renew');
+  if(S.edit.type === 'achievement'){ raw.renewDays = v('rf-renew'); raw.goal = v('rf-goal'); raw.unit = v('rf-unit'); }
   else { raw.uses = v('rf-uses'); raw.cooldownDays = v('rf-cool'); raw.validDays = v('rf-valid'); }
   return raw;
 }
@@ -949,6 +1064,11 @@ function treeLayout(d, field, t){
 function nodeState(n, t){
   return n.type === 'a' ? E.achStatus(S.data, n.obj, t) : E.challengeStatus(S.data, n.obj, t);
 }
+function nodeBar(n, st){
+  if(n.type !== 'a' || st.state === 'got') return '';
+  const p = E.progressOf(S.data, n.id); if(!p.goal) return '';
+  return `<rect class="nb-bg" x="-56" y="51.5" width="112" height="2.6"/><rect class="nb" x="-56" y="51.5" width="${(112*(p.pct || 0)).toFixed(1)}" height="2.6"/>`;
+}
 function treeSvg(L, t){
   const at = new Map(L.nodes.map(n => [n.key, n]));
   const lanes = L.lanes.map((ln, i) => `<g class="lane">${i ? `<line x1="${ln.x0 - TREE.GAP/2}" y1="8" x2="${ln.x0 - TREE.GAP/2}" y2="${L.base - 6}"/>` : ''}
@@ -975,7 +1095,7 @@ function treeSvg(L, t){
       <rect class="hit" x="-62" y="-36" width="124" height="96" fill="transparent"/>
       ${st.state === 'got' ? '<circle class="glow" r="38" fill="url(#t-glow)"/>' : ''}
       <g class="ico">${icon}</g>
-      <rect class="plq" x="-60" y="34" width="120" height="22" rx="2"/><text y="49.5">${label}</text></g>`;
+      <rect class="plq" x="-60" y="34" width="120" height="22" rx="2"/><text y="48.5">${label}</text>${nodeBar(n, st)}</g>`;
   }).join('');
   return `<svg class="tree" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}">
     <defs><radialGradient id="t-glow"><stop offset="0" stop-color="#f7dc7c" stop-opacity=".6"/><stop offset="1" stop-color="#f7dc7c" stop-opacity="0"/></radialGradient></defs>
@@ -1002,7 +1122,7 @@ function treeDetail(n, t){
     <dl><dt>達成条件</dt><dd>${h(o.condition)}</dd>
     ${o.description ? `<dt>内容</dt><dd>${h(o.description)}</dd>` : ''}
     <dt>必要実績</dt><dd><ul class="reqs">${reqs}</ul></dd>
-    <dt>現在の状態</dt><dd><b>${label}</b>${now.length ? '<br>' + now.map(h).join('<br>') : ''}</dd></dl>
+    <dt>現在の状態</dt><dd><b>${label}</b>${now.length ? '<br>' + now.map(h).join('<br>') : ''}</dd></dl>${isA ? progressBox(o) : ''}
     <div class="acts">${isA ? grantButtons(o, t, true) : ''}<button class="btn line small" data-act="goto-def" data-id="${h(o.id)}">設定で見る</button></div></div>`;
 }
 function renderTree(){
@@ -1011,7 +1131,7 @@ function renderTree(){
   const L = treeLayout(d, S.field, t);
   const sel = L.nodes.find(n => n.key === S.treeSel);
   const got = d.achievements.filter(a => E.achStatus(d, a, t).state === 'got' && inField(a)).length, all = d.achievements.filter(inField).length;
-  return `<div class="hoi"><div class="hoi-bar">${fieldChips('すべての分野')}<span class="hoi-count">紋章 ${got} / ${all}</span></div>
+  return `<div class="hoi"><div class="hoi-bar">${fieldChips('すべての分野')}<span class="hoi-count">紋章 ${got} / ${all}</span><button class="snd" data-act="snd-toggle" aria-pressed="${Snd.isOn()}">効果音 ${Snd.isOn() ? 'オン' : 'オフ'}</button></div>
     <div class="legend"><span><i class="lg-got"></i>手に入れた</span><span><i class="lg-open"></i>今目指せる</span><span><i class="lg-locked"></i>鍵がかかっている</span></div>
     ${L.nodes.length ? `<div class="tree-wrap">${treeSvg(L, t)}</div>` : '<div class="empty">この分野には、まだ実績も挑戦権もありません。</div>'}
     ${sel ? treeDetail(sel, t) : '<p class="hoi-hint">紋章や扉を押すと、達成条件・必要実績・今の状態が出ます。</p>'}</div>`;
@@ -1299,6 +1419,7 @@ function studioClick(act, b){
 
 /* ===================== 認定の演出 ===================== */
 function celebrate(achId, renewal){
+  Snd.seal();
   const a = E.findAch(S.data, achId); if(!a) return;
   const old = $('#fanfare'); if(old) old.remove();
   const el = document.createElement('div');
@@ -1357,6 +1478,18 @@ const Actions = {
     if(!ask(`「${name}」を消しますか?`)) return null;
     return commit(d => E.removeDef(d, { type, id, today: today() }), `消す ${name}`, () => '消しました');
   },
+  progOpen(id){ S.progFor = id; render(); const el = $('#pg-val') || $('#pg-sum'); if(el && el.focus) el.focus(); },
+  async progSave(id){
+    const value = ($('#pg-val') || {}).value ?? '', summary = ($('#pg-sum') || {}).value || '', t = today();
+    const res = await commit(d => E.addProgress(d, { achId: id, value, summary, today: t }), `進捗 ${achName(id)}`, r =>
+      '進捗を書きました' + (r.reached && E.canGrant(S.data, id, t).ok && E.achStatus(S.data, E.findAch(S.data, id), t).state !== 'got' ? '。目標に届いたので「達成した」を押せます' : ''));
+    if(res){ S.progFor = null; render(); }
+    return res;
+  },
+  async progDel(entryId){
+    if(!ask('この進捗の記録を消しますか?')) return null;
+    return commit(d => E.removeProgress(d, entryId), '進捗の記録を消す', () => '消しました');
+  },
   takeDelivery(id){ const x = DELIVERIES.find(v => v.id === id); if(x) Actions.startEdit(x.type, null, x.def); },
   importRead(){
     try{ S.importPreview = E.parsePack(($('#imp-text') || {}).value); }
@@ -1365,6 +1498,9 @@ const Actions = {
   },
   async importDo(){
     const p = S.importPreview; if(!p) return null;
+    const tagOf = n => (S.ministries.find(m => m.name === n) || {}).tag;
+    const withFields = x => x.fieldNames ? Object.assign({}, x, { fields: [...new Set([...(x.fields || []), ...x.fieldNames.map(tagOf).filter(Boolean)])] }) : x;
+    p.achievements = p.achievements.map(withFields); p.challenges = p.challenges.map(withFields);
     const res = await commit(d => E.importPack(d, p, today()), `取り込み ${p.title || ''}`, r =>
       `取り込みました(勲章${r.arts}・部品${r.parts}・実績${r.achievements}・挑戦権${r.challenges}${r.replaced ? `、うち${r.replaced}つは上書き` : ''})`);
     if(res){ S.importPreview = null; render(); }
@@ -1378,8 +1514,13 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if(!b) return;
   const act = b.dataset.act;
-  if(act === 'field'){ S.field = b.dataset.v; render(); }
+  if(act === 'field'){ if(b.closest('.hoi')) Snd.tick(); S.field = b.dataset.v; render(); }
   else if(act === 'grant') Actions.grant(b.dataset.id);
+  else if(act === 'prog-open') Actions.progOpen(b.dataset.id);
+  else if(act === 'prog-save') Actions.progSave(b.dataset.id);
+  else if(act === 'prog-cancel'){ S.progFor = null; render(); }
+  else if(act === 'prog-del') Actions.progDel(b.dataset.id);
+  else if(act === 'snd-toggle'){ Snd.set(!Snd.isOn()); render(); if(Snd.isOn()) Snd.tick(); }
   else if(act === 'ungrant') Actions.ungrant(b.dataset.id);
   else if(act === 'def-add') Actions.startEdit(b.dataset.type);
   else if(act === 'def-edit') Actions.startEdit(b.dataset.type, b.dataset.id);
@@ -1396,6 +1537,7 @@ document.addEventListener('click', e => {
 document.addEventListener('click', e => {
   const n = e.target.closest && e.target.closest('[data-node]');
   if(!n) return;
+  Snd.click();
   S.treeSel = S.treeSel === n.dataset.node ? null : n.dataset.node; render();
   const dt = $('#tree-detail'); if(dt && dt.scrollIntoView && window.innerWidth < 760) dt.scrollIntoView({ block: 'nearest' });
 });

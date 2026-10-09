@@ -307,6 +307,68 @@ const DATA = 'roadmap/apps/eiten/data.json';
     ok(/接続してください/.test(e.doc.body.textContent), '未接続なら案内');
   }
 
+  // ===== 進捗・更新の概要・効果音(r7) =====
+  {
+    console.log('進捗・更新の概要・効果音');
+    const repo = makeRepo();
+    repo.put('roadmap/gov/ministries.json', [{ tag: 'def', name: '防衛省', order: 1 }]);
+    repo.put(DATA, { version: 1, achievements: [{ id: 'a1', name: '千里の道も一歩から', fields: [], condition: '定着10個', requires: [], goal: 10, unit: '個' },
+      { id: 'a2', name: '数えない実績', fields: [], condition: 'x', requires: [] }], challenges: [], parts: [], arts: [], grants: [], rights: [], reviews: [], rules: [], progress: [] });
+    const dom = await boot(repo);
+    const w = dom.window, doc = w.document, App = w.App, { E } = App;
+    w.confirm = () => true;
+    // 決まり
+    const d = E.clone(App.S.data);
+    throws(() => E.addProgress(d, { achId: 'a1', value: '', summary: ' ', today: '2026-10-09' }), /今の数か/, '何も書かないと書けない');
+    throws(() => E.addProgress(d, { achId: 'a1', value: '-1', summary: 'x', today: '2026-10-09' }), /0以上/, '負の数はだめ');
+    E.addProgress(d, { achId: 'a1', value: '4', summary: '4つ定着', today: '2026-10-08' });
+    E.addProgress(d, { achId: 'a1', value: '', summary: '数は変わらず、メモだけ', today: '2026-10-09' });
+    const p = E.progressOf(d, 'a1');
+    ok(p.value === 4 && p.goal === 10 && Math.abs(p.pct - .4) < 1e-9 && p.entries.length === 2 && !p.reached, '数は最後に書いた数・概要だけの記録も残る');
+    throws(() => E.addProgress(d, { achId: 'a2', value: '', summary: '', today: '2026-10-09' }), /更新の概要を/, '目標のない実績は概要が要る');
+    // 画面:樹形図から書く
+    click(w, '[data-tab="tree"]');
+    ok(doc.querySelector('.snd'), '効果音の切り替えがある');
+    click(w, '[data-node="a:a1"]');
+    ok(/まだ書いていない|0 \/ 10個/.test(doc.getElementById('tree-detail').textContent), '進捗の欄が出る');
+    click(w, '#tree-detail [data-act="prog-open"]');
+    doc.getElementById('pg-val').value = '7'; doc.getElementById('pg-sum').value = '習慣が7つ根付いた';
+    await App.Actions.progSave('a1'); await tick();
+    const j = repo.json(DATA);
+    ok(j.progress.length === 1 && j.progress[0].value === 7 && j.progress[0].summary === '習慣が7つ根付いた', '進捗と更新の概要が書き込まれる');
+    ok(/7 \/ 10個/.test(doc.getElementById('tree-detail').textContent) && /習慣が7つ根付いた/.test(doc.getElementById('tree-detail').textContent), '棒と最新の概要が出る');
+    ok(doc.querySelector('[data-node="a:a1"] .nb').getAttribute('width') === '78.4', '樹形図の札にも進み具合の棒');
+    click(w, '#tree-detail [data-act="prog-open"]');
+    doc.getElementById('pg-val').value = '10'; doc.getElementById('pg-sum').value = '10個に到達';
+    await App.Actions.progSave('a1'); await tick();
+    ok(/達成した/.test(doc.getElementById('toast').textContent), '目標に届くと知らせる');
+    click(w, '[data-tab="settings"]');
+    ok(/10 \/ 10個/.test(doc.getElementById('def-a1').textContent) && /目標10個/.test(doc.getElementById('def-a1').textContent.replace(/\s/g, '')), '設定にも進捗と目標が出る');
+    click(w, '#def-a1 [data-act="prog-del"]'); await tick();
+    ok(repo.json(DATA).progress.length === 1, '記録を消せる');
+    click(w, '[data-tab="list"]');
+    ok(/7 \/ 10個/.test(doc.querySelector('.shelf').textContent), '一覧の影にも進み具合');
+    // 効果音:音が出せない場所でも壊れない
+    click(w, '[data-tab="tree"]');
+    click(w, '[data-act="snd-toggle"]');
+    ok(doc.querySelector('.snd').getAttribute('aria-pressed') === 'false' && w.localStorage.getItem('eiten.sound') === 'off', '効果音を切れる');
+    // 鳴った回数を数える
+    let n = 0; w.AudioContext = function(){ n++; const node = () => ({ connect(){ }, start(){ }, stop(){ }, frequency: { value: 0, setValueAtTime(){ }, exponentialRampToValueAtTime(){ } }, gain: { value: 0, setValueAtTime(){ }, linearRampToValueAtTime(){ }, exponentialRampToValueAtTime(){ } }, Q: {} });
+      return { state: 'running', currentTime: 0, sampleRate: 8000, destination: {}, createBuffer: (c, len) => ({ getChannelData: () => new Float32Array(len) }), createBufferSource: node, createBiquadFilter: node, createGain: node, createOscillator: node }; };
+    click(w, '[data-act="snd-toggle"]');
+    click(w, '[data-node="a:a2"]');
+    ok(n === 1, '樹形図を押すとカチッと鳴る(音の仕組みは1つだけ作る)');
+    // 分野を名前で指定して取り込む
+    click(w, '[data-tab="settings"]');
+    doc.getElementById('imp-text').value = JSON.stringify({ eiten: 1, achievements: [{ id: 'a-mil', name: '軍事的才能の芽生え', fieldNames: ['防衛省', 'ない省'], condition: 'x', goal: 20, unit: '回' }] });
+    click(w, '[data-act="import-read"]');
+    ok(/防衛省/.test(doc.querySelector('.importbox .card').textContent) && /見つからないので付けない/.test(doc.querySelector('.importbox .card').textContent) && /目標 20回/.test(doc.querySelector('.importbox .card').textContent), '見本に分野と目標が出る');
+    click(w, '[data-act="import-do"]'); await tick(); await tick();
+    const mil = App.S.data.achievements.find(a => a.id === 'a-mil');
+    ok(mil && mil.fields.join() === 'def' && mil.goal === 20 && mil.unit === '回', '分野を名前で付けて取り込める');
+    w.close();
+  }
+
   {
     const dom = await boot(makeRepo(), false);
     ok(!dom.window.document.getElementById('conn').hidden, '接続していないと接続の欄が開く');
